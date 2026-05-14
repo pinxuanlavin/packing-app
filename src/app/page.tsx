@@ -15,6 +15,9 @@ const statusLabel = { pending:"待配货", packed:"待审核", approved:"已完�
 const statusColor = { pending: C.dim, packed: C.warning, approved: C.success, rejected: C.danger, history: C.muted };
 
 export default function App() {
+  const [unlocked, setUnlocked]       = useState(false);
+  const [pinInput, setPinInput]         = useState("");
+  const [pinError, setPinError]         = useState(false);
   const [worker, setWorker]           = useState<any>(null);
   const [workers, setWorkers]         = useState<any[]>([]);
   const [orders, setOrders]           = useState<any[]>([]);
@@ -29,6 +32,7 @@ export default function App() {
   const scanRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
+    if (localStorage.getItem("unlocked") === "1") setUnlocked(true);
     loadWorkers();
     loadOrders();
     const saved = localStorage.getItem("worker");
@@ -97,6 +101,28 @@ export default function App() {
     return created >= todayCutoff;
   });
 
+
+  if (!unlocked) return (
+    <div style={{ background:"#1e1c18", minHeight:"100vh", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", padding:32, fontFamily:"sans-serif" }}>
+      <img src="/icon.png" alt="PackFlow" style={{ width:100, height:100, borderRadius:20, marginBottom:24, objectFit:"cover" }} />
+      <div style={{ fontSize:11, color:"rgba(240,236,228,0.5)", letterSpacing:4, textTransform:"uppercase", marginBottom:32 }}>PackFlow</div>
+      <input
+        type="password"
+        value={pinInput}
+        onChange={e => { setPinInput(e.target.value); setPinError(false); }}
+        onKeyDown={e => { if(e.key==="Enter") { if(pinInput==="2425"){setUnlocked(true);localStorage.setItem("unlocked","1");}else{setPinError(true);setPinInput("");} }}}
+        placeholder="输入密码"
+        maxLength={10}
+        style={{ background:"rgba(240,236,228,0.08)", border:"1px solid "+(pinError?"#8a3530":"rgba(240,236,228,0.2)"), borderRadius:4, padding:"14px 20px", color:"#f0ece4", fontSize:16, textAlign:"center", outline:"none", width:200, letterSpacing:4, marginBottom:8, fontFamily:"sans-serif" }}
+        autoFocus
+      />
+      {pinError && <div style={{ fontSize:12, color:"#8a3530", marginBottom:8 }}>密码错误</div>}
+      <button onClick={() => { if(pinInput==="2425"){setUnlocked(true);localStorage.setItem("unlocked","1");}else{setPinError(true);setPinInput("");} }}
+        style={{ background:"rgba(240,236,228,0.1)", border:"1px solid rgba(240,236,228,0.2)", borderRadius:4, padding:"12px 32px", color:"#f0ece4", fontSize:13, cursor:"pointer", letterSpacing:1, fontFamily:"sans-serif", marginTop:4 }}>
+        进入
+      </button>
+    </div>
+  );
 
   if (!worker) return <WorkerPicker workers={workers} onSelect={chooseWorker} onAdd={async (name: string) => {
     await fetch("/api/workers", { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({name}) });
