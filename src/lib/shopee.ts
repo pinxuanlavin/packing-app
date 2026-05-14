@@ -51,7 +51,7 @@ async function fetchShopOrders(shopId: number, region: string, refreshToken: str
   const now      = Math.floor(Date.now() / 1000);
   const timeFrom = now - 2 * 24 * 3600;
 
-  const [list1, list2, list3] = await Promise.all([
+  const [list1, list2] = await Promise.all([
     shopeeGet("/api/v2/order/get_order_list", token, shopId, {
       time_range_field: "create_time", time_from: timeFrom, time_to: now,
       page_size: 50, order_status: "PROCESSED", response_optional_fields: "order_status",
@@ -60,16 +60,11 @@ async function fetchShopOrders(shopId: number, region: string, refreshToken: str
       time_range_field: "create_time", time_from: timeFrom, time_to: now,
       page_size: 50, order_status: "READY_TO_SHIP", response_optional_fields: "order_status",
     }),
-    shopeeGet("/api/v2/order/get_order_list", token, shopId, {
-      time_range_field: "create_time", time_from: timeFrom, time_to: now,
-      page_size: 50, order_status: "SHIPPED", response_optional_fields: "order_status",
-    }),
   ]);
 
   const orderList: any[] = [
     ...(list1?.response?.order_list ?? []),
     ...(list2?.response?.order_list ?? []),
-    ...(list3?.response?.order_list ?? []),
   ];
 
   console.log(`[${region}] 订单列表:`, orderList.length, "个");

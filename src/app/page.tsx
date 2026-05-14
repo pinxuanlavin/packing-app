@@ -87,18 +87,15 @@ export default function App() {
   const now = new Date();
   const todayCutoff = new Date(); todayCutoff.setHours(14,0,0,0);
   const yesterdayCutoff = new Date(); yesterdayCutoff.setDate(yesterdayCutoff.getDate()-1); yesterdayCutoff.setHours(14,0,0,0);
+  const todayMidnight = new Date(); todayMidnight.setHours(23,59,59,999);
   const allUnscheduled = orders.filter(o => o.shopee_status === "READY_TO_SHIP");
   const todayDue = allUnscheduled.filter(o => {
     const created = new Date(o.create_time * 1000);
-    if (now < todayCutoff) {
-      return created < todayCutoff;
-    } else {
-      return created >= yesterdayCutoff && created < todayCutoff;
-    }
+    return created >= yesterdayCutoff && created < todayCutoff;
   });
   const tomorrowDue = allUnscheduled.filter(o => {
     const created = new Date(o.create_time * 1000);
-    return created >= todayCutoff;
+    return created >= todayCutoff && created <= todayMidnight;
   });
 
 
@@ -234,7 +231,6 @@ function ScanTab({ orders, scanInput, setScanInput, scanError, scanRef, onScan, 
   const pending  = orders.filter(o => o.status === "pending" && o.shopee_status === "PROCESSED");
   const rejected = orders.filter(o => o.review_status === "rejected");
   const inReview = orders.filter(o => o.review_status === "pending");
-  const approved = orders.filter(o => o.review_status === "approved");
   const total    = orders.filter(o => o.shopee_status === "PROCESSED").length;
   return (
     <div>
@@ -271,15 +267,15 @@ function ScanTab({ orders, scanInput, setScanInput, scanError, scanRef, onScan, 
       </div>
       <div style={{ background:C.card, borderRadius:12, padding:"10px 16px", marginBottom:16, border:"1px solid "+C.border }}>
         <div style={{ display:"flex", justifyContent:"space-between", marginBottom:6 }}>
-          <div style={{ fontSize:12, color:C.muted }}>审核进度</div>
-          <div style={{ fontSize:12, color:C.muted }}>{approved.length} / {total}</div>
+          <div style={{ fontSize:12, color:C.muted }}>配货进度</div>
+          <div style={{ fontSize:12, color:C.muted }}>{orders.filter(o=>o.review_status==="approved").length} / {total}</div>
         </div>
         <div style={{ background:C.border, borderRadius:4, height:6, overflow:"hidden" }}>
-          <div style={{ background:C.success, height:"100%", width: total>0 ? (approved.length/total*100)+"%" : "0%", borderRadius:4, transition:"width .3s" }} />
+          <div style={{ background:C.success, height:"100%", width: total>0 ? (orders.filter(o=>o.review_status==="approved").length/total*100)+"%" : "0%", borderRadius:4, transition:"width .3s" }} />
         </div>
       </div>
-      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr 1fr", gap:8, marginBottom:24 }}>
-        {[{label:"待配货",val:pending.length,color:C.accent},{label:"待审核",val:inReview.length,color:C.warning},{label:"待重拍",val:rejected.length,color:C.danger},{label:"已完成",val:approved.length,color:C.success}].map(s => (
+      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:8, marginBottom:24 }}>
+        {[{label:"待配货",val:pending.length,color:C.accent},{label:"待审核",val:inReview.length,color:C.warning},{label:"待重拍",val:rejected.length,color:C.danger}].map(s => (
           <div key={s.label} onClick={() => setQuickList(quickList===s.label?null:s.label)}
             style={{ background:quickList===s.label?s.color+"22":C.card, borderRadius:12, padding:"14px 12px", textAlign:"center", border:"1px solid "+(quickList===s.label?s.color:C.border), cursor:"pointer" }}>
             <div style={{ fontSize:24, fontWeight:400, color:s.color, fontFamily:"Georgia,serif" }}>{s.val}</div>
@@ -290,7 +286,7 @@ function ScanTab({ orders, scanInput, setScanInput, scanError, scanRef, onScan, 
       {quickList && (
         <div style={{ marginBottom:20 }}>
           <div style={{ fontSize:13, color:C.muted, fontWeight:600, marginBottom:10 }}>
-            {quickList} ({(quickList==="待配货"?pending:quickList==="待审核"?inReview:quickList==="待重拍"?rejected:quickList==="已完成"?approved:quickList==="今日配货"?orders.filter(o=>o.shopee_status==="PROCESSED"):unscheduled).length})
+            {quickList} ({(quickList==="待配货"?pending:quickList==="待审核"?inReview:quickList==="待重拍"?rejected:quickList==="今日配货"?orders.filter(o=>o.shopee_status==="PROCESSED"):unscheduled).length})
             <button onClick={() => setQuickList(null)} style={{ float:"right", background:"none", border:"none", color:C.dim, cursor:"pointer", fontSize:12 }}>收起 ↑</button>
           </div>
           {quickList==="待安排" && todayDue.length > 0 && (
@@ -311,7 +307,7 @@ function ScanTab({ orders, scanInput, setScanInput, scanError, scanRef, onScan, 
               <div style={{ fontSize:10, color:C.muted, marginTop:2 }}>{o.items.map(i=>i.model||i.sku).join("、")}</div>
             </div>
           ))}
-          {quickList!=="待安排" && (quickList==="待配货"?pending:quickList==="待审核"?inReview:quickList==="待重拍"?rejected:quickList==="已完成"?approved:quickList==="今日配货"?orders.filter(o=>o.shopee_status==="PROCESSED"):unscheduled).map(o => (
+          {quickList!=="待安排" && (quickList==="待配货"?pending:quickList==="待审核"?inReview:quickList==="待重拍"?rejected:quickList==="今日配货"?orders.filter(o=>o.shopee_status==="PROCESSED"):unscheduled).map(o => (
             <div key={o.order_sn} onClick={() => onSelect(o)}
               style={{ background: quickList==="待重拍"?"rgba(138,53,48,0.05)":"#ffffff", border:"1px solid "+(quickList==="待重拍"?"rgba(138,53,48,0.3)":"rgba(120,105,80,0.12)"), borderRadius:4, padding:"12px 14px", marginBottom:6, cursor:"pointer" }}>
               <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
