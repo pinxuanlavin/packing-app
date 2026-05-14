@@ -4,3 +4,4 @@ packing.db
 public/uploads/
 .env.local
 *.bak
+.vercel
