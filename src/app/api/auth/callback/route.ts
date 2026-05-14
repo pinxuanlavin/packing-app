@@ -14,7 +14,7 @@ export async function GET(request: Request) {
   }
 
   // 用code换token
-  const tokenRes = await fetch("https://login.microsoftonline.com/common/oauth2/v2.0/token", {
+  const tokenRes = await fetch("https://login.microsoftonline.com/a4830359-e397-4b7c-8a8d-8bad305b0878/oauth2/v2.0/token", {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({
