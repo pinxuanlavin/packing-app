@@ -8,6 +8,7 @@
     "start": "next start"
   },
   "dependencies": {
+    "@neondatabase/serverless": "^1.1.0",
     "@zxing/library": "^0.23.0",
     "better-sqlite3": "^12.10.0",
     "next": "16.2.6",

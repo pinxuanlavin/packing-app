@@ -1,20 +1,9 @@
-import Database from "better-sqlite3";
-import path from "path";
+import { neon } from "@neondatabase/serverless";
 
-const DB_PATH = path.join(process.cwd(), "packing.db");
-let _db: Database.Database | null = null;
+const sql = neon(process.env.DATABASE_URL!);
 
-export function getDb() {
-  if (!_db) {
-    _db = new Database(DB_PATH);
-    _db.pragma("journal_mode = WAL");
-    initDb(_db);
-  }
-  return _db;
-}
-
-function initDb(db: Database.Database) {
-  db.exec(`
+export async function initDb() {
+  await sql`
     CREATE TABLE IF NOT EXISTS orders (
       order_sn         TEXT PRIMARY KEY,
       tracking_number  TEXT,
@@ -30,89 +19,91 @@ function initDb(db: Database.Database) {
       reviewed_by      TEXT DEFAULT '',
       reviewed_at      INTEGER,
       photos_json      TEXT DEFAULT '[]',
-      synced_at        INTEGER
-    );
+      synced_at        INTEGER,
+      shopee_status    TEXT DEFAULT '',
+      shop_id          TEXT DEFAULT 'SG',
+      region           TEXT DEFAULT 'SG'
+    )
+  `;
+  await sql`
     CREATE TABLE IF NOT EXISTS workers (
-      id   INTEGER PRIMARY KEY AUTOINCREMENT,
+      id   SERIAL PRIMARY KEY,
       name TEXT UNIQUE NOT NULL,
       role TEXT DEFAULT 'worker'
-    );
-    INSERT OR IGNORE INTO workers (name, role) VALUES ('Boss', 'boss');
-  `);
+    )
+  `;
+  await sql`INSERT INTO workers (name, role) VALUES ('审核', 'boss') ON CONFLICT (name) DO NOTHING`;
 }
 
-export function upsertOrders(orders: any[]) {
-  const db = getDb();
-  const stmt = db.prepare(`
-    INSERT INTO orders (order_sn, tracking_number, package_number, shipping_carrier, shopee_status, shop_id, region, create_time, items_json, synced_at)
-    VALUES (@order_sn, @tracking_number, @package_number, @shipping_carrier, @shopee_status, @shop_id, @region, @create_time, @items_json, @synced_at)
-    ON CONFLICT(order_sn) DO UPDATE SET
-      tracking_number  = excluded.tracking_number,
-      package_number   = excluded.package_number,
-      shipping_carrier = excluded.shipping_carrier,
-      shopee_status    = excluded.shopee_status,
-      shop_id          = excluded.shop_id,
-      region           = excluded.region,
-      items_json       = excluded.items_json,
-      synced_at        = excluded.synced_at
-  `);
-  const now = Math.floor(Date.now() / 1000);
-  const insertMany = db.transaction((orders: any[]) => {
-    for (const o of orders) {
-      stmt.run({
-        order_sn:         o.order_sn,
-        tracking_number:  o.tracking_number,
-        package_number:   o.package_number,
-        shipping_carrier: o.shipping_carrier,
-        shopee_status:    o.shopee_status ?? "",
-        shop_id:          o.shop_id ?? "SG",
-        region:           o.region ?? "SG",
-        create_time:      o.create_time,
-        items_json:       JSON.stringify(o.items),
-        synced_at:        now,
-      });
-    }
-  });
-  insertMany(orders);
+export async function upsertOrders(orders: any[]) {
+  for (const o of orders) {
+    await sql`
+      INSERT INTO orders (order_sn, tracking_number, package_number, shipping_carrier, shopee_status, shop_id, region, create_time, items_json, synced_at)
+      VALUES (${o.order_sn}, ${o.tracking_number}, ${o.package_number}, ${o.shipping_carrier}, ${o.shopee_status}, ${o.shop_id||'SG'}, ${o.region||'SG'}, ${o.create_time}, ${JSON.stringify(o.items)}, ${Math.floor(Date.now()/1000)})
+      ON CONFLICT (order_sn) DO UPDATE SET
+        tracking_number  = EXCLUDED.tracking_number,
+        package_number   = EXCLUDED.package_number,
+        shipping_carrier = EXCLUDED.shipping_carrier,
+        shopee_status    = EXCLUDED.shopee_status,
+        shop_id          = EXCLUDED.shop_id,
+        region           = EXCLUDED.region,
+        items_json       = EXCLUDED.items_json,
+        synced_at        = EXCLUDED.synced_at
+    `;
+  }
 }
 
-export function getAllOrders() {
-  const rows = getDb().prepare("SELECT * FROM orders ORDER BY create_time DESC").all() as any[];
+export async function getAllOrders() {
+  const rows = await sql`SELECT * FROM orders ORDER BY create_time DESC`;
   return rows.map(parseOrder);
 }
 
-export function getOrderByTracking(trackingNo: string) {
-  const row = getDb().prepare("SELECT * FROM orders WHERE UPPER(tracking_number) = UPPER(?)").get(trackingNo) as any;
-  return row ? parseOrder(row) : null;
+export async function getOrderByTracking(trackingNo: string) {
+  const rows = await sql`SELECT * FROM orders WHERE UPPER(tracking_number) = UPPER(${trackingNo})`;
+  return rows[0] ? parseOrder(rows[0]) : null;
 }
 
-export function getOrderBySn(orderSn: string) {
-  const row = getDb().prepare("SELECT * FROM orders WHERE UPPER(order_sn) = UPPER(?)").get(orderSn) as any;
-  return row ? parseOrder(row) : null;
+export async function getOrderBySn(orderSn: string) {
+  const rows = await sql`SELECT * FROM orders WHERE UPPER(order_sn) = UPPER(${orderSn})`;
+  return rows[0] ? parseOrder(rows[0]) : null;
 }
 
-export function updateOrderPacked(orderSn: string, worker: string, photos: string[]) {
-  getDb().prepare(`
-    UPDATE orders SET status='packed', worker=?, packed_at=?, review_status='pending', photos_json=?
-    WHERE order_sn=?
-  `).run(worker, Math.floor(Date.now() / 1000), JSON.stringify(photos), orderSn);
+export async function getAllOrdersForScan() {
+  const rows = await sql`SELECT * FROM orders ORDER BY create_time DESC`;
+  return rows.map(parseOrder);
 }
 
-export function updateOrderReview(orderSn: string, pass: boolean, comment: string, reviewer: string) {
-  getDb().prepare(`
-    UPDATE orders SET status=?, review_status=?, review_comment=?, reviewed_by=?, reviewed_at=?
-    WHERE order_sn=?
-  `).run(pass?"approved":"rejected", pass?"approved":"rejected", comment, reviewer, Math.floor(Date.now()/1000), orderSn);
+export async function updateOrderPacked(orderSn: string, worker: string, photos: string[]) {
+  await sql`
+    UPDATE orders SET status='packed', worker=${worker}, packed_at=${Math.floor(Date.now()/1000)}, review_status='pending', photos_json=${JSON.stringify(photos)}
+    WHERE order_sn=${orderSn}
+  `;
+}
+
+export async function updateOrderReview(orderSn: string, pass: boolean, comment: string, reviewer: string) {
+  await sql`
+    UPDATE orders SET
+      status=${pass?"approved":"rejected"},
+      review_status=${pass?"approved":"rejected"},
+      review_comment=${comment},
+      reviewed_by=${reviewer},
+      reviewed_at=${Math.floor(Date.now()/1000)}
+    WHERE order_sn=${orderSn}
+  `;
 }
 
 function parseOrder(row: any) {
-  return { ...row, items: JSON.parse(row.items_json||"[]"), photos: JSON.parse(row.photos_json||"[]") };
+  return {
+    ...row,
+    items:  JSON.parse(row.items_json  || "[]"),
+    photos: JSON.parse(row.photos_json || "[]"),
+  };
 }
 
-export function getWorkers() {
-  return getDb().prepare("SELECT * FROM workers ORDER BY role DESC, name ASC").all();
+export async function getWorkers() {
+  return await sql`SELECT * FROM workers ORDER BY role DESC, name ASC`;
 }
 
-export function addWorker(name: string, role = "worker") {
-  getDb().prepare("INSERT OR IGNORE INTO workers (name, role) VALUES (?, ?)").run(name, role);
+export async function addWorker(name: string, role = "worker") {
+  await sql`INSERT INTO workers (name, role) VALUES (${name}, ${role}) ON CONFLICT (name) DO NOTHING`;
 }

@@ -17,7 +17,7 @@ export async function POST(request: Request) {
       await writeFile(path.join(uploadDir, fname), Buffer.from(await file.arrayBuffer()));
       photoPaths.push(`/uploads/${orderSn}/${fname}`);
     }
-    updateOrderPacked(orderSn, worker, photoPaths);
+    await updateOrderPacked(orderSn, worker, photoPaths);
     return NextResponse.json({ ok: true, photos: photoPaths });
   } catch (e: any) {
     return NextResponse.json({ ok: false, error: e.message }, { status: 500 });
