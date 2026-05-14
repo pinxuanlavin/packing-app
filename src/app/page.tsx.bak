@@ -1,0 +1,405 @@
+"use client";
+import { useState, useEffect, useRef, Suspense, lazy } from "react";
+const Scanner = lazy(() => import("@/components/Scanner"));
+
+const C = {
+  bg: "#0f1117", surface: "#1a1d27", card: "#20242f", border: "#2a2f3d",
+  accent: "#3b82f6", success: "#22c55e", warning: "#f59e0b", danger: "#ef4444",
+  text: "#f1f5f9", muted: "#94a3b8", dim: "#475569",
+};
+
+type Order = {
+  order_sn: string; tracking_number: string; shipping_carrier: string;
+  status: string; worker: string; review_status: string; review_comment: string;
+  photos: string[]; items: { name: string; sku: string; model: string; qty: number; image: string }[];
+};
+type Worker = { id: number; name: string; role: string };
+
+const statusLabel: Record<string, string> = { pending:"待配货", packed:"待审核", approved:"已通过", rejected:"需重拍" };
+const statusColor: Record<string, string> = { pending: C.dim, packed: C.warning, approved: C.success, rejected: C.danger };
+
+export default function App() {
+  const [worker, setWorker]       = useState<Worker | null>(null);
+  const [workers, setWorkers]     = useState<Worker[]>([]);
+  const [orders, setOrders]       = useState<Order[]>([]);
+  const [tab, setTab]             = useState("scan");
+  const [activeOrder, setActive]  = useState<Order | null>(null);
+  const [scanInput, setScanInput] = useState("");
+  const [scanError, setScanError] = useState("");
+  const [syncing, setSyncing]     = useState(false);
+  const [lastSync, setLastSync]   = useState("");
+  const scanRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    loadWorkers();
+    loadOrders();
+    const saved = localStorage.getItem("worker");
+    if (saved) setWorker(JSON.parse(saved));
+  }, []);
+
+  useEffect(() => {
+    if (worker && !activeOrder && tab === "scan") scanRef.current?.focus();
+  }, [worker, activeOrder, tab]);
+
+  async function loadWorkers() {
+    const res = await fetch("/api/workers");
+    const data = await res.json();
+    setWorkers(data.workers ?? []);
+  }
+
+  async function loadOrders() {
+    const res = await fetch("/api/orders");
+    const data = await res.json();
+    setOrders(data.orders ?? []);
+  }
+
+  async function syncOrders() {
+    setSyncing(true);
+    await fetch("/api/orders", { method: "POST" });
+    await loadOrders();
+    setLastSync(new Date().toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" }));
+    setSyncing(false);
+  }
+
+  async function handleScan(e: React.FormEvent) {
+    e.preventDefault();
+    const val = scanInput.trim();
+    if (!val) return;
+    const res = await fetch(`/api/scan?code=${encodeURIComponent(val)}`);
+    const data = await res.json();
+    if (data.ok) {
+      setActive(data.order);
+      setScanInput("");
+      setScanError("");
+    } else {
+      setScanError(data.error);
+      setTimeout(() => setScanError(""), 3000);
+    }
+  }
+
+  async function handleReview(orderSn: string, pass: boolean, comment: string) {
+    await fetch("/api/review", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ order_sn: orderSn, pass, comment, reviewer: worker?.name }),
+    });
+    await loadOrders();
+  }
+
+  function chooseWorker(w: Worker) {
+    setWorker(w);
+    localStorage.setItem("worker", JSON.stringify(w));
+  }
+
+  function handleScanResult(code: string) {
+    setShowScanner(false);
+    setScanInput(code);
+    setTimeout(() => {
+      const form = document.querySelector('form');
+      if (form) form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+    }, 100);
+  }
+
+  if (!worker) return <WorkerPicker workers={workers} onSelect={chooseWorker} onAdd={async (name) => { await fetch("/api/workers", { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({name}) }); await loadWorkers(); }} />;
+  if (activeOrder) return <PackingDetail order={activeOrder} worker={worker.name} onBack={() => { setActive(null); loadOrders(); }} onReload={loadOrders} />;
+
+  return (
+    <>
+    {showScanner && <Suspense fallback={null}><Scanner onScan={handleScanResult} onClose={() => setShowScanner(false)} /></Suspense>}
+    <div style={{ background: C.bg, minHeight:"100vh", color: C.text, fontFamily:"'DM Sans','Noto Sans SC',sans-serif", maxWidth:480, margin:"0 auto" }}>
+      <div style={{ padding:"16px 20px 12px", display:"flex", alignItems:"center", justifyContent:"space-between", borderBottom:`1px solid ${C.border}` }}>
+        <div>
+          <div style={{ fontSize:11, color:C.muted, letterSpacing:2, textTransform:"uppercase" }}>AETHER FLOW 配货</div>
+          <div style={{ fontSize:15, fontWeight:600 }}>你好，{worker.name} {worker.role==="boss"?"👑":"👋"}</div>
+        </div>
+        <div style={{ display:"flex", gap:8 }}>
+          <button onClick={syncOrders} disabled={syncing} style={{ background:C.surface, border:`1px solid ${C.border}`, borderRadius:8, padding:"6px 12px", color: syncing?C.dim:C.accent, fontSize:12, cursor:"pointer", fontFamily:"inherit" }}>
+            {syncing ? "同步中…" : `↻ 同步${lastSync?" "+lastSync:""}`}
+          </button>
+          <button onClick={() => { setWorker(null); localStorage.removeItem("worker"); }} style={{ background:C.surface, border:`1px solid ${C.border}`, borderRadius:8, padding:"6px 12px", color:C.muted, fontSize:12, cursor:"pointer" }}>换人</button>
+        </div>
+      </div>
+      <div style={{ padding:"20px", paddingBottom:80 }}>
+        {tab==="scan"   && <ScanTab orders={orders} scanInput={scanInput} setScanInput={setScanInput} scanError={scanError} scanRef={scanRef} onScan={handleScan} onSelect={setActive} onSync={syncOrders} syncing={syncing} onOpenScanner={() => setShowScanner(true)} />}
+        {tab==="list"   && <ListTab orders={orders} onSelect={setActive} />}
+        {tab==="review" && worker.role==="boss" && <ReviewTab orders={orders} onReview={handleReview} />}
+        {tab==="review" && worker.role!=="boss" && <div style={{ textAlign:"center", color:C.dim, padding:"60px 0" }}>审核功能仅限老板账号</div>}
+      </div>
+      <div style={{ position:"fixed", bottom:0, left:"50%", transform:"translateX(-50%)", width:"100%", maxWidth:480, background:C.surface, borderTop:`1px solid ${C.border}`, display:"flex" }}>
+        {[{id:"scan",label:"扫码",icon:"⊡"},{id:"list",label:"配货单",icon:"☰"},{id:"review",label:"审核",icon:"✓"}].map(t => (
+          <button key={t.id} onClick={() => setTab(t.id)} style={{ flex:1, padding:"12px 0", background:"none", border:"none", cursor:"pointer", color:tab===t.id?C.accent:C.dim, display:"flex", flexDirection:"column", alignItems:"center", gap:3 }}>
+            <span style={{ fontSize:20 }}>{t.icon}</span>
+            <span style={{ fontSize:11 }}>{t.label}</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+    </>
+  );
+}
+
+function WorkerPicker({ workers, onSelect, onAdd }: { workers: Worker[]; onSelect: (w: Worker) => void; onAdd: (name: string) => void }) {
+  const [newName, setNewName] = useState("");
+  return (
+    <div style={{ background:C.bg, minHeight:"100vh", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", padding:32, fontFamily:"'DM Sans','Noto Sans SC',sans-serif" }}>
+      <div style={{ fontSize:40, marginBottom:12 }}>📦</div>
+      <div style={{ fontSize:22, fontWeight:700, color:C.text, marginBottom:6 }}>你是谁？</div>
+      <div style={{ fontSize:14, color:C.muted, marginBottom:28 }}>选择名字开始配货</div>
+      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, width:"100%", maxWidth:320, marginBottom:20 }}>
+        {workers.map(w => (
+          <button key={w.id} onClick={() => onSelect(w)} style={{ background:C.card, border:`1px solid ${C.border}`, borderRadius:12, padding:"16px 0", color:C.text, fontSize:14, fontWeight:500, cursor:"pointer", fontFamily:"inherit" }}>
+            {w.role==="boss"?"👑 ":""}{w.name}
+          </button>
+        ))}
+      </div>
+      <div style={{ display:"flex", gap:8, width:"100%", maxWidth:320 }}>
+        <input value={newName} onChange={e=>setNewName(e.target.value)} placeholder="添加新员工名字" style={{ flex:1, background:C.card, border:`1px solid ${C.border}`, borderRadius:10, padding:"10px 12px", color:C.text, fontSize:14, fontFamily:"inherit", outline:"none" }} />
+        <button onClick={() => { if(newName.trim()){ onAdd(newName.trim()); setNewName(""); }}} style={{ background:C.accent, border:"none", borderRadius:10, padding:"0 16px", color:"#fff", fontSize:14, cursor:"pointer" }}>+</button>
+      </div>
+    </div>
+  );
+}
+
+function ScanTab({ orders, scanInput, setScanInput, scanError, scanRef, onScan, onSelect, onSync, syncing, onOpenScanner }: any) {
+  const pending  = orders.filter((o: Order) => o.status === "pending");
+  const rejected = orders.filter((o: Order) => o.review_status === "rejected");
+  const inReview = orders.filter((o: Order) => o.review_status === "pending");
+  return (
+    <div>
+      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:10, marginBottom:24 }}>
+        {[{label:"待配货",val:pending.length,color:C.accent},{label:"待审核",val:inReview.length,color:C.warning},{label:"需重拍",val:rejected.length,color:C.danger}].map(s => (
+          <div key={s.label} style={{ background:C.card, borderRadius:12, padding:"14px 12px", textAlign:"center", border:`1px solid ${C.border}` }}>
+            <div style={{ fontSize:24, fontWeight:700, color:s.color }}>{s.val}</div>
+            <div style={{ fontSize:11, color:C.muted, marginTop:2 }}>{s.label}</div>
+          </div>
+        ))}
+      </div>
+      <form onSubmit={onScan} style={{ marginBottom:24 }}>
+        <div style={{ fontSize:13, color:C.muted, marginBottom:8 }}>扫描面单条形码 或 输入订单号</div>
+        <div style={{ display:"flex", gap:8 }}>
+          <input ref={scanRef} value={scanInput} onChange={e=>setScanInput(e.target.value)} placeholder="SPXSG… 或 2605…" autoComplete="off"
+            style={{ flex:1, background:C.card, border:`1.5px solid ${scanError?C.danger:C.border}`, borderRadius:10, padding:"12px 14px", color:C.text, fontSize:15, outline:"none", fontFamily:"inherit" }} />
+          <button type="submit" style={{ background:C.accent, border:"none", borderRadius:10, padding:"0 20px", color:"#fff", fontSize:20, cursor:"pointer" }}>→</button>
+          <button type="button" onClick={() => onOpenScanner()} style={{ background:"#1a1d27", border:"1px solid #2a2f3d", borderRadius:10, padding:"0 16px", color:"#f1f5f9", fontSize:20, cursor:"pointer" }}>📷</button>
+        </div>
+        {scanError && <div style={{ color:C.danger, fontSize:13, marginTop:8 }}>{scanError}</div>}
+      </form>
+      {rejected.length > 0 && (
+        <div style={{ marginBottom:20 }}>
+          <div style={{ fontSize:13, color:C.danger, fontWeight:600, marginBottom:10 }}>⚠ 需要重拍</div>
+          {rejected.map((o: Order) => (
+            <div key={o.order_sn} onClick={() => onSelect(o)} style={{ background:C.card, border:`1px solid ${C.danger}44`, borderRadius:12, padding:"12px 14px", marginBottom:8, cursor:"pointer" }}>
+              <div style={{ fontSize:13, fontWeight:600 }}>{o.order_sn}</div>
+              <div style={{ fontSize:12, color:C.muted, marginTop:3 }}>{o.review_comment}</div>
+            </div>
+          ))}
+        </div>
+      )}
+      {orders.length === 0 && (
+        <div style={{ textAlign:"center", padding:"40px 0" }}>
+          <div style={{ color:C.dim, fontSize:14, marginBottom:16 }}>暂无订单，先同步一下</div>
+          <button onClick={onSync} disabled={syncing} style={{ background:C.accent, border:"none", borderRadius:10, padding:"12px 24px", color:"#fff", fontSize:14, cursor:"pointer", fontFamily:"inherit" }}>
+            {syncing?"同步中…":"↻ 从 Shopee 同步订单"}
+          </button>
+        </div>
+      )}
+      {pending.length > 0 && (
+        <div>
+          <div style={{ fontSize:13, color:C.muted, fontWeight:600, marginBottom:10 }}>今日待配货 ({pending.length})</div>
+          {pending.map((o: Order) => (
+            <div key={o.order_sn} onClick={() => onSelect(o)} style={{ background:C.card, border:`1px solid ${C.border}`, borderRadius:12, padding:"12px 14px", marginBottom:8, cursor:"pointer", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+              <div>
+                <div style={{ fontSize:13, fontWeight:600 }}>{o.order_sn}</div>
+                <div style={{ fontSize:11, color:C.muted, marginTop:2 }}>{o.items.map((i:any)=>i.model||i.sku).join("、")}</div>
+              </div>
+              <span style={{ color:C.dim }}>→</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ListTab({ orders, onSelect }: { orders: Order[]; onSelect: (o: Order) => void }) {
+  const [filter, setFilter] = useState("all");
+  const filtered = filter === "all" ? orders : orders.filter(o => o.status === filter);
+  return (
+    <div>
+      <div style={{ display:"flex", gap:8, marginBottom:16, overflowX:"auto", paddingBottom:4 }}>
+        {["all","pending","packed","approved","rejected"].map(f => (
+          <button key={f} onClick={() => setFilter(f)} style={{ background:filter===f?C.accent:C.card, border:`1px solid ${filter===f?C.accent:C.border}`, borderRadius:20, padding:"6px 14px", color:filter===f?"#fff":C.muted, fontSize:12, cursor:"pointer", whiteSpace:"nowrap", fontFamily:"inherit" }}>
+            {{all:"全部",pending:"待配货",packed:"待审核",approved:"已通过",rejected:"需重拍"}[f as string]}
+          </button>
+        ))}
+      </div>
+      {filtered.map(o => (
+        <div key={o.order_sn} onClick={() => onSelect(o)} style={{ background:C.card, border:`1px solid ${C.border}`, borderRadius:12, padding:"14px", marginBottom:10, cursor:"pointer" }}>
+          <div style={{ display:"flex", justifyContent:"space-between", marginBottom:8 }}>
+            <div>
+              <div style={{ fontSize:14, fontWeight:600 }}>{o.order_sn}</div>
+              <div style={{ fontSize:11, color:C.muted, marginTop:2 }}>{o.tracking_number}</div>
+            </div>
+            <span style={{ background:statusColor[o.status]+"22", color:statusColor[o.status], borderRadius:6, padding:"3px 8px", fontSize:11, fontWeight:600 }}>{statusLabel[o.status]}</span>
+          </div>
+          {o.items.map((item,i) => (
+            <div key={i} style={{ display:"flex", justifyContent:"space-between", fontSize:12, color:C.muted, marginBottom:3 }}>
+              <span>{item.model||item.name.slice(0,30)}</span>
+              <span style={{ color:C.text }}>×{item.qty}</span>
+            </div>
+          ))}
+          {o.worker && <div style={{ marginTop:8, fontSize:11, color:C.dim }}>配货员：{o.worker}</div>}
+        </div>
+      ))}
+      {filtered.length === 0 && <div style={{ textAlign:"center", color:C.dim, padding:"40px 0" }}>暂无订单</div>}
+    </div>
+  );
+}
+
+function PackingDetail({ order, worker, onBack, onReload }: { order: Order; worker: string; onBack: () => void; onReload: () => void }) {
+  const [photos, setPhotos]     = useState<File[]>([]);
+  const [previews, setPreviews] = useState<string[]>([]);
+  const [submitting, setSubmitting] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const isRejected = order.review_status === "rejected";
+
+  function addPhoto(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files ?? []);
+    if (!files.length) return;
+    const newPhotos = [...photos, ...files].slice(0, 3);
+    setPhotos(newPhotos);
+    setPreviews(newPhotos.map(f => URL.createObjectURL(f)));
+  }
+
+  async function submit() {
+    if (!photos.length) return;
+    setSubmitting(true);
+    const fd = new FormData();
+    fd.append("order_sn", order.order_sn);
+    fd.append("worker", worker);
+    photos.forEach(p => fd.append("photos", p));
+    await fetch("/api/pack", { method:"POST", body:fd });
+    await onReload();
+    onBack();
+  }
+
+  return (
+    <div style={{ background:C.bg, minHeight:"100vh", color:C.text, fontFamily:"'DM Sans','Noto Sans SC',sans-serif", maxWidth:480, margin:"0 auto" }}>
+      <div style={{ padding:"16px 20px", display:"flex", alignItems:"center", gap:12, borderBottom:`1px solid ${C.border}` }}>
+        <button onClick={onBack} style={{ background:"none", border:"none", color:C.muted, fontSize:20, cursor:"pointer", padding:0 }}>←</button>
+        <div>
+          <div style={{ fontSize:15, fontWeight:600 }}>{order.order_sn}</div>
+          <div style={{ fontSize:11, color:C.muted }}>{order.tracking_number} · {order.shipping_carrier}</div>
+        </div>
+      </div>
+      <div style={{ padding:20 }}>
+        {isRejected && (
+          <div style={{ background:C.danger+"15", border:`1px solid ${C.danger}44`, borderRadius:12, padding:"12px 14px", marginBottom:20 }}>
+            <div style={{ fontSize:13, fontWeight:600, color:C.danger, marginBottom:4 }}>⚠ 审核不通过，请重新拍照</div>
+            <div style={{ fontSize:13, color:C.muted }}>{order.review_comment}</div>
+          </div>
+        )}
+        <div style={{ background:C.card, borderRadius:12, padding:16, marginBottom:20, border:`1px solid ${C.border}` }}>
+          <div style={{ fontSize:13, fontWeight:600, marginBottom:12 }}>配货清单</div>
+          {order.items.map((item,i) => (
+            <div key={i} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"10px 0", borderBottom:`1px solid ${C.border}` }}>
+              <div>
+                <div style={{ fontSize:14 }}>{item.model||item.name.slice(0,40)}</div>
+                <div style={{ fontSize:11, color:C.dim, marginTop:2 }}>{item.sku}</div>
+              </div>
+              <div style={{ fontSize:22, fontWeight:700, color:C.accent }}>×{item.qty}</div>
+            </div>
+          ))}
+        </div>
+        <div style={{ marginBottom:20 }}>
+          <div style={{ fontSize:13, fontWeight:600, marginBottom:4 }}>拍摄配货照片（最多3张）</div>
+          <div style={{ fontSize:12, color:C.muted, marginBottom:12 }}>建议：整体全景、商品特写、快递单</div>
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:10 }}>
+            {[0,1,2].map(i => (
+              <div key={i} onClick={() => i<=photos.length && photos.length<3 && fileRef.current?.click()}
+                style={{ aspectRatio:"1", background:C.card, border:`1.5px dashed ${i<previews.length?C.success:i===previews.length?C.accent:C.border}`, borderRadius:10, overflow:"hidden", cursor:i<=photos.length&&photos.length<3?"pointer":"default", display:"flex", alignItems:"center", justifyContent:"center", fontSize:i<previews.length?28:22, color:i<previews.length?C.success:i===previews.length?C.accent:C.dim }}>
+                {previews[i] ? <img src={previews[i]} alt="" style={{ width:"100%", height:"100%", objectFit:"cover" }} /> : i===previews.length?"+":" ○"}
+              </div>
+            ))}
+          </div>
+          <input ref={fileRef} type="file" accept="image/*" capture="environment" onChange={addPhoto} style={{ display:"none" }} multiple />
+          {photos.length > 0 && <div style={{ marginTop:8, fontSize:12, color:C.success }}>已选 {photos.length} 张</div>}
+        </div>
+        <button onClick={submit} disabled={!photos.length||submitting}
+          style={{ width:"100%", background:photos.length>0?C.accent:C.border, border:"none", borderRadius:12, padding:"16px 0", color:photos.length>0?"#fff":C.dim, fontSize:16, fontWeight:600, cursor:photos.length>0?"pointer":"not-allowed", fontFamily:"inherit" }}>
+          {submitting?"提交中…":`提交配货${photos.length>0?` (${photos.length}张)`:""}`}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function ReviewTab({ orders, onReview }: { orders: Order[]; onReview: (sn: string, pass: boolean, comment: string) => void }) {
+  const [selected, setSelected] = useState<Order | null>(null);
+  const [comment, setComment]   = useState("");
+  const toReview = orders.filter(o => o.review_status === "pending");
+
+  if (selected) return (
+    <div>
+      <button onClick={() => { setSelected(null); setComment(""); }} style={{ background:"none", border:"none", color:C.muted, fontSize:14, cursor:"pointer", padding:"0 0 16px", fontFamily:"inherit" }}>← 返回</button>
+      <div style={{ fontSize:16, fontWeight:600, marginBottom:2 }}>{selected.order_sn}</div>
+      <div style={{ fontSize:12, color:C.muted, marginBottom:16 }}>配货员：{selected.worker}</div>
+      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:20 }}>
+        {selected.photos.map((p,i) => (
+          <div key={i} style={{ aspectRatio:"4/3", background:C.card, borderRadius:10, overflow:"hidden", border:`1px solid ${C.border}` }}>
+            <img src={p} alt="" style={{ width:"100%", height:"100%", objectFit:"cover" }} />
+          </div>
+        ))}
+        {selected.photos.length===0 && <div style={{ gridColumn:"1/-1", textAlign:"center", color:C.dim, padding:20 }}>暂无照片</div>}
+      </div>
+      <div style={{ background:C.card, borderRadius:12, padding:14, marginBottom:16, border:`1px solid ${C.border}` }}>
+        {selected.items.map((item,i) => (
+          <div key={i} style={{ display:"flex", justifyContent:"space-between", fontSize:13, padding:"6px 0", borderBottom:`1px solid ${C.border}` }}>
+            <span>{item.model||item.sku}</span><span style={{ color:C.accent }}>×{item.qty}</span>
+          </div>
+        ))}
+      </div>
+      <textarea value={comment} onChange={e=>setComment(e.target.value)} placeholder="不通过时请填写原因…" rows={3}
+        style={{ width:"100%", background:C.card, border:`1px solid ${C.border}`, borderRadius:10, padding:"10px 12px", color:C.text, fontSize:14, fontFamily:"inherit", resize:"none", outline:"none", boxSizing:"border-box", marginBottom:12 }} />
+      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
+        <button onClick={() => { onReview(selected.order_sn,false,comment||"请重新拍照"); setSelected(null); setComment(""); }}
+          style={{ background:C.danger+"22", border:`1px solid ${C.danger}44`, borderRadius:12, padding:"14px 0", color:C.danger, fontSize:15, fontWeight:600, cursor:"pointer", fontFamily:"inherit" }}>✕ 不通过</button>
+        <button onClick={() => { onReview(selected.order_sn,true,""); setSelected(null); setComment(""); }}
+          style={{ background:C.success, border:"none", borderRadius:12, padding:"14px 0", color:"#fff", fontSize:15, fontWeight:600, cursor:"pointer", fontFamily:"inherit" }}>✓ 通过</button>
+      </div>
+    </div>
+  );
+
+  return (
+    <div>
+      <div style={{ fontSize:13, color:C.muted, marginBottom:16 }}>待审核 {toReview.length} 个</div>
+      {toReview.length===0 && <div style={{ textAlign:"center", color:C.dim, padding:"40px 0" }}>🎉 暂无待审核订单</div>}
+      {toReview.map(o => (
+        <div key={o.order_sn} onClick={() => setSelected(o)} style={{ background:C.card, border:`1px solid ${C.border}`, borderRadius:12, padding:14, marginBottom:10, cursor:"pointer", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+          <div>
+            <div style={{ fontSize:14, fontWeight:600 }}>{o.order_sn}</div>
+            <div style={{ fontSize:12, color:C.muted, marginTop:3 }}>配货员：{o.worker} · {o.photos.length}张照片</div>
+          </div>
+          <span style={{ color:C.warning }}>→</span>
+        </div>
+      ))}
+      {orders.filter(o=>o.review_status==="approved"||o.review_status==="rejected").length > 0 && (
+        <div style={{ marginTop:24 }}>
+          <div style={{ fontSize:13, color:C.dim, marginBottom:10 }}>今日已处理</div>
+          {orders.filter(o=>o.review_status==="approved"||o.review_status==="rejected").map(o => (
+            <div key={o.order_sn} style={{ background:C.card, border:`1px solid ${C.border}`, borderRadius:12, padding:"12px 14px", marginBottom:8, display:"flex", justifyContent:"space-between", alignItems:"center", opacity:0.6 }}>
+              <div>
+                <div style={{ fontSize:13, fontWeight:600 }}>{o.order_sn}</div>
+                <div style={{ fontSize:11, color:C.muted }}>配货员：{o.worker}</div>
+              </div>
+              <span style={{ background:statusColor[o.status]+"22", color:statusColor[o.status], borderRadius:6, padding:"3px 8px", fontSize:11, fontWeight:600 }}>{statusLabel[o.status]}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+export { };
