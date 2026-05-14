@@ -11,8 +11,8 @@ const C = {
   headerBg: "#1e1c18", headerText: "#f0ece4",
 };
 
-const statusLabel = { pending:"待配货", packed:"待审核", approved:"已完成", rejected:"待重拍" };
-const statusColor = { pending: C.dim, packed: C.warning, approved: C.success, rejected: C.danger, history: C.muted };
+const statusLabel: Record<string,string> = { pending:"待配货", packed:"待审核", approved:"已完成", rejected:"待重拍", shipped_unreviewed:"未审核发出" };
+const statusColor: Record<string,string> = { pending: C.dim, packed: C.warning, approved: C.success, rejected: C.danger, shipped_unreviewed: "#6b3a8a", history: C.muted };
 
 export default function App() {
   const [unlocked, setUnlocked]       = useState(false);
