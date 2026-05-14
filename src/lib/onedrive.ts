@@ -45,6 +45,12 @@ export async function uploadToOneDrive(
   });
 
   const data = await res.json();
-  if (!data.webUrl) throw new Error("上传失败: " + JSON.stringify(data));
-  return data.webUrl;
+  if (!data.id) throw new Error("上传失败: " + JSON.stringify(data));
+  
+  // 直接下载链接（有效期1小时，审核时够用）
+  const downloadUrl = data["@microsoft.graph.downloadUrl"];
+  if (downloadUrl) return downloadUrl;
+  
+  // 备用：SharePoint webUrl
+  return data.webUrl || "";
 }
