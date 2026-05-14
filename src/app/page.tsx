@@ -25,7 +25,7 @@ export default function App() {
   const [lastSync, setLastSync]       = useState("");
   const [showScanner, setShowScanner] = useState(false);
   const [previewImg, setPreviewImg] = useState(null);
-  const scanRef = useRef(null);
+  const scanRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     loadWorkers();
