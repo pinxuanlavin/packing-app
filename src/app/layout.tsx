@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
 
 export const metadata: Metadata = {
-  title: "Aether Flow 配货",
+  title: "PackFlow",
   description: "配货打包系统",
   manifest: "/manifest.json",
   appleWebApp: {
@@ -26,7 +26,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="apple-mobile-web-app-title" content="配货" />
-        <link rel="apple-touch-icon" href="/logo-dark.png" />
+        <link rel="apple-touch-icon" href="/icon.png" />
         <link rel="manifest" href="/manifest.json" />
       </head>
       <body suppressHydrationWarning style={{ margin:0, padding:0, background:"#f0ece4" }}>
