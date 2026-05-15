@@ -11,6 +11,13 @@ const C = {
   headerBg: "#1e1c18", headerText: "#f0ece4",
 };
 
+function photoUrl(url: string) {
+  if (url.startsWith("onedrive://")) {
+    return "/api/photo?id=" + url.replace("onedrive://", "");
+  }
+  return url;
+}
+
 const statusLabel: Record<string,string> = { pending:"待配货", packed:"待审核", approved:"已完成", rejected:"待重拍", shipped_unreviewed:"未审核发出" };
 const statusColor: Record<string,string> = { pending: C.dim, packed: C.warning, approved: C.success, rejected: C.danger, shipped_unreviewed: "#6b3a8a", history: C.muted };
 
@@ -439,7 +446,7 @@ function PackingDetail({ order, worker, onBack, onReload, onPreview }: any) {
             <div style={{ fontSize:9, color:C.muted, letterSpacing:3, textTransform:"uppercase", marginBottom:10 }}>配货照片</div>
             {order.photos.map((p,i) => (
               <div key={i} style={{ marginBottom:8, borderRadius:4, overflow:"hidden", border:"1px solid rgba(120,105,80,0.12)" }}>
-                <img src={p} alt="" style={{ width:"100%", display:"block", objectFit:"contain", maxHeight:400 }} />
+                <img src={photoUrl(p)} alt="" style={{ width:"100%", display:"block", objectFit:"contain", maxHeight:400 }} />
               </div>
             ))}
           </div>
@@ -547,7 +554,7 @@ function ReviewTab({ orders, onReview }: any) {
       <div style={{ display:"flex", flexDirection:"column", gap:10, marginBottom:20 }}>
         {selected.photos.map((p,i) => (
           <div key={i} style={{ width:"100%", background:"#ffffff", borderRadius:4, overflow:"hidden", border:"1px solid rgba(120,105,80,0.12)" }}>
-            <img src={p} alt="" style={{ width:"100%", display:"block", objectFit:"contain", maxHeight:400 }} />
+            <img src={photoUrl(p)} alt="" style={{ width:"100%", display:"block", objectFit:"contain", maxHeight:400 }} />
           </div>
         ))}
         {selected.photos.length===0 && <div style={{ textAlign:"center", color:C.dim, padding:20 }}>暂无照片</div>}
@@ -678,7 +685,7 @@ function HistoryTab({ orders }: any) {
               {o.photos.length > 0 && (
                 <div style={{ display:"flex", gap:6, marginTop:8 }}>
                   {o.photos.map((p,i) => (
-                    <img key={i} src={p} alt="" style={{ width:56, height:56, borderRadius:6, objectFit:"cover" }} />
+                    <img key={i} src={photoUrl(p)} alt="" style={{ width:56, height:56, borderRadius:6, objectFit:"cover" }} />
                   ))}
                 </div>
               )}

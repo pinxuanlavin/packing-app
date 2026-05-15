@@ -47,10 +47,6 @@ export async function uploadToOneDrive(
   const data = await res.json();
   if (!data.id) throw new Error("上传失败: " + JSON.stringify(data));
   
-  // 直接下载链接（有效期1小时，审核时够用）
-  const downloadUrl = data["@microsoft.graph.downloadUrl"];
-  if (downloadUrl) return downloadUrl;
-  
-  // 备用：SharePoint webUrl
-  return data.webUrl || "";
+  // 返回 onedrive://文件ID 格式，后续通过API实时获取下载链接
+  return `onedrive://${data.id}`;
 }
