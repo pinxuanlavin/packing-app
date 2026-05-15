@@ -17,7 +17,8 @@ export async function POST(request: Request) {
       const fname = `${date}/${orderSn}/${i + 1}_${Date.now()}.jpg`;
       
       const blob = await put(fname, file, {
-        access: "public",
+        access: "private",
+        addRandomSuffix: false,
         token: process.env.BLOB_READ_WRITE_TOKEN,
       });
       photoPaths.push(blob.url);
