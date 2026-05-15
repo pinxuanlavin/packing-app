@@ -15,14 +15,13 @@ export async function POST(request: Request) {
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
       const buffer = Buffer.from(await file.arrayBuffer());
-      const fname  = `${i + 1}_${Date.now()}.jpg`;
+      const fname = `${i + 1}_${Date.now()}.jpg`;
       
       try {
         const url = await uploadToOneDrive(buffer, fname, orderSn, date);
         photoPaths.push(url);
       } catch (e) {
         console.error("OneDrive上传失败:", e);
-        // 失败时用占位符
         photoPaths.push(`/uploads/${orderSn}/${fname}`);
       }
     }

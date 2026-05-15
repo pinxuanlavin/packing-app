@@ -109,19 +109,25 @@ async function fetchShopOrders(shopId: number, region: string) {
   const orders: any[] = detailData?.response?.order_list ?? [];
   const result = [];
 
+  // 批量获取tracking number（并发处理，速度更快）
+  const trackingPromises = orders.map(async (order: any) => {
+    const pkg = order.package_list?.[0];
+    if (!pkg?.package_number) return { order_sn: order.order_sn, tracking: "" };
+    const trackData = await shopeeGet("/api/v2/logistics/get_tracking_number", token, shopId, {
+      order_sn: order.order_sn, package_number: pkg.package_number,
+    });
+    return { order_sn: order.order_sn, tracking: trackData?.response?.tracking_number ?? "" };
+  });
+  
+  const trackingResults = await Promise.all(trackingPromises);
+  const trackingMap = new Map(trackingResults.map(t => [t.order_sn, t.tracking]));
+
   for (const order of orders) {
     const pkg = order.package_list?.[0];
-    let spxNo = "";
-    if (pkg?.package_number) {
-      const trackData = await shopeeGet("/api/v2/logistics/get_tracking_number", token, shopId, {
-        order_sn: order.order_sn, package_number: pkg.package_number,
-      });
-      spxNo = trackData?.response?.tracking_number ?? "";
-    }
     const shopeeStatus = orderList.find((o:any) => o.order_sn === order.order_sn)?.order_status ?? "";
     result.push({
       order_sn:         order.order_sn,
-      tracking_number:  spxNo,
+      tracking_number:  trackingMap.get(order.order_sn) ?? "",
       package_number:   pkg?.package_number ?? "",
       shipping_carrier: order.shipping_carrier ?? "",
       shopee_status:    shopeeStatus,
