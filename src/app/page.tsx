@@ -550,8 +550,9 @@ function ReviewTab({ orders, onReview }: any) {
     <div>
       <button onClick={() => { setSelected(null); setComment(""); }} style={{ background:"none", border:"none", color:C.muted, fontSize:14, cursor:"pointer", padding:"0 0 16px", fontFamily:"inherit" }}>← 返回</button>
       <div style={{ fontSize:15, fontWeight:500, marginBottom:2, color:C.text }}>{selected.order_sn}</div>
-      <div style={{ fontSize:11, color:C.muted, marginBottom:16, letterSpacing:1 }}>配货员：{selected.worker}</div>
-      <div style={{ display:"flex", flexDirection:"column", gap:10, marginBottom:20 }}>
+      <div style={{ fontSize:11, color:C.muted, marginBottom:16, letterSpacing:1 }}>配货员:{selected.worker}</div>
+
+      <div style={{ display:"flex", flexDirection:"column", gap:10, marginBottom:16 }}>
         {selected.photos.map((p,i) => (
           <div key={i} style={{ width:"100%", background:"#ffffff", borderRadius:4, overflow:"hidden", border:"1px solid rgba(120,105,80,0.12)" }}>
             <img src={photoUrl(p)} alt="" style={{ width:"100%", display:"block", objectFit:"contain", maxHeight:400 }} />
@@ -559,6 +560,16 @@ function ReviewTab({ orders, onReview }: any) {
         ))}
         {selected.photos.length===0 && <div style={{ textAlign:"center", color:C.dim, padding:20 }}>暂无照片</div>}
       </div>
+
+      <textarea value={comment} onChange={e=>setComment(e.target.value)} placeholder="不通过时请填写原因..." rows={2}
+        style={{ width:"100%", background:"#ffffff", border:"1px solid rgba(120,105,80,0.15)", borderRadius:4, padding:"10px 12px", color:C.text, fontSize:13, fontFamily:"inherit", resize:"none", outline:"none", boxSizing:"border-box", marginBottom:10 }} />
+      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:20 }}>
+        <button onClick={() => { onReview(selected.order_sn,false,comment||"请重新拍照"); setSelected(null); setComment(""); }}
+          style={{ background:"rgba(138,53,48,0.08)", border:"1px solid rgba(138,53,48,0.2)", borderRadius:4, padding:"13px 0", color:C.danger, fontSize:13, cursor:"pointer", fontFamily:"inherit" }}>✕ 不通过</button>
+        <button onClick={() => { onReview(selected.order_sn,true,""); setSelected(null); setComment(""); }}
+          style={{ background:"#1e1c18", border:"none", borderRadius:4, padding:"13px 0", color:"#f0ece4", fontSize:13, cursor:"pointer", fontFamily:"inherit" }}>✓ 通过</button>
+      </div>
+
       <div style={{ background:"#ffffff", borderRadius:4, padding:14, marginBottom:16, border:"1px solid rgba(120,105,80,0.12)" }}>
         <div style={{ fontSize:9, color:C.muted, letterSpacing:3, textTransform:"uppercase", marginBottom:12 }}>配货清单</div>
         {selected.items.map((item,i) => (
@@ -566,22 +577,15 @@ function ReviewTab({ orders, onReview }: any) {
             {item.image && <img src={item.image} alt="" style={{ width:48, height:48, borderRadius:3, objectFit:"cover", flexShrink:0 }} />}
             <div style={{ flex:1, minWidth:0 }}>
               <div style={{ fontSize:13, color:C.text }}>{item.model||item.name.slice(0,30)}</div>
-              <div style={{ fontSize:10, color:C.muted, marginTop:2 }}>{item.sku}</div>
+              <div style={{ fontSize:10, color:C.muted, marginTop:2 }}><HighlightSku sku={item.sku} /></div>
             </div>
             <span style={{ fontSize:18, color:C.text, flexShrink:0 }}>×{item.qty}</span>
           </div>
         ))}
       </div>
-      <textarea value={comment} onChange={e=>setComment(e.target.value)} placeholder="不通过时请填写原因…" rows={3}
-        style={{ width:"100%", background:"#ffffff", border:"1px solid rgba(120,105,80,0.15)", borderRadius:4, padding:"10px 12px", color:C.text, fontSize:13, fontFamily:"inherit", resize:"none", outline:"none", boxSizing:"border-box", marginBottom:12 }} />
-      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
-        <button onClick={() => { onReview(selected.order_sn,false,comment||"请重新拍照"); setSelected(null); setComment(""); }}
-          style={{ background:"rgba(138,53,48,0.08)", border:"1px solid rgba(138,53,48,0.2)", borderRadius:4, padding:"13px 0", color:C.danger, fontSize:13, cursor:"pointer", fontFamily:"inherit" }}>✕ 不通过</button>
-        <button onClick={() => { onReview(selected.order_sn,true,""); setSelected(null); setComment(""); }}
-          style={{ background:"#1e1c18", border:"none", borderRadius:4, padding:"13px 0", color:"#f0ece4", fontSize:13, cursor:"pointer", fontFamily:"inherit" }}>✓ 通过</button>
-      </div>
     </div>
   );
+
 
   return (
     <div>
