@@ -1,0 +1,68 @@
+<svg width="512" height="522" viewBox="0 0 522 522" role="img" xmlns="http://www.w3.org/2000/svg" style="">
+  <title style="fill:rgb(0, 0, 0);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, &quot;system-ui&quot;, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto">PACK FLOW App Icon with Aether Flow branding</title>
+  <desc style="fill:rgb(0, 0, 0);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, &quot;system-ui&quot;, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto">512x512 app icon for PACK FLOW by Aether Flow</desc>
+
+  <defs>
+    <linearGradient id="bg3" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2a2927"/>
+      <stop offset="100%" stop-color="#1c1b1a"/>
+    </linearGradient>
+    <linearGradient id="top3" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#eae4d7"/>
+      <stop offset="100%" stop-color="#d2c9b5"/>
+    </linearGradient>
+    <linearGradient id="right3" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#b0a895"/>
+      <stop offset="100%" stop-color="#96907f"/>
+    </linearGradient>
+    <linearGradient id="front3" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#d9d2c0"/>
+      <stop offset="100%" stop-color="#c4bcaa"/>
+    </linearGradient>
+    <linearGradient id="lid3" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#f0ebe0"/>
+      <stop offset="100%" stop-color="#dbd3c2"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="512" height="512" fill="url(#bg3)" rx="112" style="stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, &quot;system-ui&quot;, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+
+  <!-- Isometric box — shifted up slightly -->
+  <g transform="translate(256, 224)" style="fill:rgb(0, 0, 0);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, &quot;system-ui&quot;, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto">
+
+    <!-- Lid -->
+    <polygon points="-96,-80 0,-128 96,-80 0,-32" fill="url(#lid3)" opacity="0.95" style="stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:0.95;font-family:&quot;Anthropic Sans&quot;, -apple-system, &quot;system-ui&quot;, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+    <polygon points="0,-32 96,-80 96,-52 0,-4" fill="#a09888" opacity="0.55" style="fill:rgb(160, 152, 136);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:0.55;font-family:&quot;Anthropic Sans&quot;, -apple-system, &quot;system-ui&quot;, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+    <polygon points="-96,-80 0,-32 0,-4 -96,-52" fill="#b2aa98" opacity="0.45" style="fill:rgb(178, 170, 152);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:0.45;font-family:&quot;Anthropic Sans&quot;, -apple-system, &quot;system-ui&quot;, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+
+    <!-- Box -->
+    <polygon points="-96,-48 0,-96 96,-48 0,0" fill="url(#top3)" opacity="0.97" style="stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:0.97;font-family:&quot;Anthropic Sans&quot;, -apple-system, &quot;system-ui&quot;, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+    <polygon points="0,0 96,-48 96,64 0,112" fill="url(#right3)" style="stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, &quot;system-ui&quot;, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+    <polygon points="-96,-48 0,0 0,112 -96,64" fill="url(#front3)" style="stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, &quot;system-ui&quot;, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+
+    <!-- Edges -->
+    <line x1="-96" y1="-48" x2="-96" y2="64" stroke="#c8c0ae" stroke-width="0.6" opacity="0.5" style="fill:rgb(0, 0, 0);stroke:rgb(200, 192, 174);color:rgb(0, 0, 0);stroke-width:0.6px;stroke-linecap:butt;stroke-linejoin:miter;opacity:0.5;font-family:&quot;Anthropic Sans&quot;, -apple-system, &quot;system-ui&quot;, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+    <line x1="96" y1="-48" x2="96" y2="64" stroke="#7a7468" stroke-width="0.6" opacity="0.5" style="fill:rgb(0, 0, 0);stroke:rgb(122, 116, 104);color:rgb(0, 0, 0);stroke-width:0.6px;stroke-linecap:butt;stroke-linejoin:miter;opacity:0.5;font-family:&quot;Anthropic Sans&quot;, -apple-system, &quot;system-ui&quot;, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+    <line x1="0" y1="0" x2="0" y2="112" stroke="#9c9485" stroke-width="0.6" opacity="0.35" style="fill:rgb(0, 0, 0);stroke:rgb(156, 148, 133);color:rgb(0, 0, 0);stroke-width:0.6px;stroke-linecap:butt;stroke-linejoin:miter;opacity:0.35;font-family:&quot;Anthropic Sans&quot;, -apple-system, &quot;system-ui&quot;, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+    <line x1="-96" y1="-48" x2="0" y2="-96" stroke="#e4ddd0" stroke-width="0.6" opacity="0.6" style="fill:rgb(0, 0, 0);stroke:rgb(228, 221, 208);color:rgb(0, 0, 0);stroke-width:0.6px;stroke-linecap:butt;stroke-linejoin:miter;opacity:0.6;font-family:&quot;Anthropic Sans&quot;, -apple-system, &quot;system-ui&quot;, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+    <line x1="96" y1="-48" x2="0" y2="-96" stroke="#e4ddd0" stroke-width="0.6" opacity="0.6" style="fill:rgb(0, 0, 0);stroke:rgb(228, 221, 208);color:rgb(0, 0, 0);stroke-width:0.6px;stroke-linecap:butt;stroke-linejoin:miter;opacity:0.6;font-family:&quot;Anthropic Sans&quot;, -apple-system, &quot;system-ui&quot;, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+    <line x1="-96" y1="-80" x2="-96" y2="-48" stroke="#d0c8b6" stroke-width="0.6" opacity="0.6" style="fill:rgb(0, 0, 0);stroke:rgb(208, 200, 182);color:rgb(0, 0, 0);stroke-width:0.6px;stroke-linecap:butt;stroke-linejoin:miter;opacity:0.6;font-family:&quot;Anthropic Sans&quot;, -apple-system, &quot;system-ui&quot;, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+    <line x1="96" y1="-80" x2="96" y2="-48" stroke="#d0c8b6" stroke-width="0.6" opacity="0.6" style="fill:rgb(0, 0, 0);stroke:rgb(208, 200, 182);color:rgb(0, 0, 0);stroke-width:0.6px;stroke-linecap:butt;stroke-linejoin:miter;opacity:0.6;font-family:&quot;Anthropic Sans&quot;, -apple-system, &quot;system-ui&quot;, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+
+    <!-- Gold cross lines -->
+    <line x1="-96" y1="-48" x2="0" y2="0" stroke="#c4a882" stroke-width="0.7" opacity="0.4" style="fill:rgb(0, 0, 0);stroke:rgb(196, 168, 130);color:rgb(0, 0, 0);stroke-width:0.7px;stroke-linecap:butt;stroke-linejoin:miter;opacity:0.4;font-family:&quot;Anthropic Sans&quot;, -apple-system, &quot;system-ui&quot;, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+    <line x1="96" y1="-48" x2="0" y2="0" stroke="#c4a882" stroke-width="0.7" opacity="0.4" style="fill:rgb(0, 0, 0);stroke:rgb(196, 168, 130);color:rgb(0, 0, 0);stroke-width:0.7px;stroke-linecap:butt;stroke-linejoin:miter;opacity:0.4;font-family:&quot;Anthropic Sans&quot;, -apple-system, &quot;system-ui&quot;, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+    <line x1="-96" y1="-52" x2="0" y2="-4" stroke="#c4a882" stroke-width="0.8" opacity="0.5" style="fill:rgb(0, 0, 0);stroke:rgb(196, 168, 130);color:rgb(0, 0, 0);stroke-width:0.8px;stroke-linecap:butt;stroke-linejoin:miter;opacity:0.5;font-family:&quot;Anthropic Sans&quot;, -apple-system, &quot;system-ui&quot;, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+    <line x1="96" y1="-52" x2="0" y2="-4" stroke="#c4a882" stroke-width="0.8" opacity="0.5" style="fill:rgb(0, 0, 0);stroke:rgb(196, 168, 130);color:rgb(0, 0, 0);stroke-width:0.8px;stroke-linecap:butt;stroke-linejoin:miter;opacity:0.5;font-family:&quot;Anthropic Sans&quot;, -apple-system, &quot;system-ui&quot;, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+  </g>
+
+  <!-- PACK FLOW — main product name -->
+  <text x="256" y="382" text-anchor="middle" fill="#e8e2d5" font-size="46" font-family="'Futura', 'Century Gothic', 'Trebuchet MS', sans-serif" font-weight="400" letter-spacing="10" style="fill:rgb(232, 226, 213);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:Futura, &quot;Century Gothic&quot;, &quot;Trebuchet MS&quot;, sans-serif;font-size:46px;font-weight:400;text-anchor:middle;dominant-baseline:auto">PACK FLOW</text>
+
+  <!-- Gold rule -->
+  <line x1="148" y1="400" x2="364" y2="400" stroke="#c4a882" stroke-width="0.6" opacity="0.55" style="fill:rgb(0, 0, 0);stroke:rgb(196, 168, 130);color:rgb(0, 0, 0);stroke-width:0.6px;stroke-linecap:butt;stroke-linejoin:miter;opacity:0.55;font-family:&quot;Anthropic Sans&quot;, -apple-system, &quot;system-ui&quot;, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
+
+  <!-- Brand name — smaller, muted, spaced -->
+  <text x="256" y="428" text-anchor="middle" fill="#5a5650" font-size="11" font-family="'Futura', 'Century Gothic', 'Trebuchet MS', sans-serif" font-weight="400" letter-spacing="5" style="fill:rgb(90, 86, 80);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:Futura, &quot;Century Gothic&quot;, &quot;Trebuchet MS&quot;, sans-serif;font-size:11px;font-weight:400;text-anchor:middle;dominant-baseline:auto">BY AETHER FLOW</text>
+
+</svg>
