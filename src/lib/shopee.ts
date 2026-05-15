@@ -99,7 +99,7 @@ async function fetchShopOrders(shopId: number, region: string) {
 
   console.log(`[${region}] 订单列表:`, orderList.length, "个");
   if (!orderList.length) return [];
-  console.log(`[${region}] 详情数:`, detailData?.response?.order_list?.length ?? 0, "个");
+
 
   const sns = orderList.map((o: any) => o.order_sn).join(",");
   const detailData = await shopeeGet("/api/v2/order/get_order_detail", token, shopId, {
@@ -149,7 +149,7 @@ async function fetchShopOrders(shopId: number, region: string) {
       })),
     });
   }
-  console.log(`[${region}] result:`, result.length, "个");
+  console.log(`[${region}] result:`, result.length, "个, orders:", orders.length);
   return result;
 }
 
