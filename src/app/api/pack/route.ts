@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { updateOrderPacked } from "@/lib/db";
-import { uploadToOneDrive } from "@/lib/onedrive";
+import { put } from "@vercel/blob";
 
 export async function POST(request: Request) {
   try {
@@ -14,21 +14,19 @@ export async function POST(request: Request) {
 
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
-      const buffer = Buffer.from(await file.arrayBuffer());
-      const fname = `${i + 1}_${Date.now()}.jpg`;
+      const fname = `${date}/${orderSn}/${i + 1}_${Date.now()}.jpg`;
       
-      try {
-        const url = await uploadToOneDrive(buffer, fname, orderSn, date);
-        photoPaths.push(url);
-      } catch (e) {
-        console.error("OneDrive上传失败:", e);
-        photoPaths.push(`/uploads/${orderSn}/${fname}`);
-      }
+      const blob = await put(fname, file, {
+        access: "public",
+        token: process.env.BLOB_READ_WRITE_TOKEN,
+      });
+      photoPaths.push(blob.url);
     }
 
     await updateOrderPacked(orderSn, worker, photoPaths);
     return NextResponse.json({ ok: true, photos: photoPaths });
   } catch (e: any) {
+    console.error("上传失败:", e);
     return NextResponse.json({ ok: false, error: e.message }, { status: 500 });
   }
 }

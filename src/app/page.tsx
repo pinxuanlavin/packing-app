@@ -12,10 +12,10 @@ const C = {
 };
 
 function photoUrl(url: string) {
-  if (url.startsWith("onedrive://")) {
+  if (url && url.startsWith("onedrive://")) {
     return "/api/photo?id=" + url.replace("onedrive://", "");
   }
-  return url;
+  return url || "";
 }
 
 const statusLabel: Record<string,string> = { pending:"待配货", packed:"待审核", approved:"已完成", rejected:"待重拍", shipped_unreviewed:"未审核发出" };
