@@ -37,17 +37,9 @@ export async function initDb() {
 
 export async function upsertOrders(orders: any[]) {
   for (const o of orders) {
-    const existing: any[] = await sql`SELECT status, review_status FROM orders WHERE order_sn = ${o.order_sn}`;
-    const cur = existing[0];
-    const isShipped = o.shopee_status === "SHIPPED";
-    let newStatus = cur?.status || "pending";
-    if (isShipped) {
-      if (cur?.review_status === "approved") newStatus = "approved";
-      else newStatus = "shipped_unreviewed";
-    }
     await sql`
-      INSERT INTO orders (order_sn, tracking_number, package_number, shipping_carrier, shopee_status, shop_id, region, create_time, items_json, synced_at, status)
-      VALUES (${o.order_sn}, ${o.tracking_number}, ${o.package_number}, ${o.shipping_carrier}, ${o.shopee_status}, ${o.shop_id||'SG'}, ${o.region||'SG'}, ${o.create_time}, ${JSON.stringify(o.items)}, ${Math.floor(Date.now()/1000)}, ${newStatus})
+      INSERT INTO orders (order_sn, tracking_number, package_number, shipping_carrier, shopee_status, shop_id, region, create_time, items_json, synced_at)
+      VALUES (${o.order_sn}, ${o.tracking_number}, ${o.package_number}, ${o.shipping_carrier}, ${o.shopee_status}, ${o.shop_id||'SG'}, ${o.region||'SG'}, ${o.create_time}, ${JSON.stringify(o.items)}, ${Math.floor(Date.now()/1000)})
       ON CONFLICT (order_sn) DO UPDATE SET
         tracking_number  = EXCLUDED.tracking_number,
         package_number   = EXCLUDED.package_number,
@@ -56,15 +48,11 @@ export async function upsertOrders(orders: any[]) {
         shop_id          = EXCLUDED.shop_id,
         region           = EXCLUDED.region,
         items_json       = EXCLUDED.items_json,
-        synced_at        = EXCLUDED.synced_at,
-        status           = CASE
-          WHEN EXCLUDED.shopee_status = 'SHIPPED' AND orders.review_status = 'approved' THEN 'approved'
-          WHEN EXCLUDED.shopee_status = 'SHIPPED' THEN 'shipped_unreviewed'
-          ELSE orders.status
-        END
+        synced_at        = EXCLUDED.synced_at
     `;
   }
 }
+
 
 export async function getAllOrders() {
   const rows = await sql`SELECT * FROM orders ORDER BY create_time DESC`;
