@@ -13,11 +13,9 @@ export async function GET() {
   `;
   await sql`
     INSERT INTO shopee_tokens (shop_id, access_token, refresh_token, updated_at)
-    VALUES (209859170, '46654e7854476f5a7a6a6f4b634a574a', '4f534a6e4a4b774870564c45464b4f4f', 1778814876)
-    ON CONFLICT (shop_id) DO UPDATE SET
-      access_token = EXCLUDED.access_token,
-      refresh_token = EXCLUDED.refresh_token,
-      updated_at = EXCLUDED.updated_at
+    VALUES (209859170, ${process.env.SHOPEE_ACCESS_TOKEN}, ${process.env.SHOPEE_REFRESH_TOKEN}, ${Math.floor(Date.now()/1000)})
+    ON CONFLICT (shop_id) DO NOTHING
   `;
-  return NextResponse.json({ ok: true, message: "初始化完成" });
+  const rows = await sql`SELECT shop_id, updated_at FROM shopee_tokens`;
+  return NextResponse.json({ ok: true, message: "初始化完成", tokens: rows });
 }
