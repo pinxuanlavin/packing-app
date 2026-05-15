@@ -109,8 +109,13 @@ async function fetchShopOrders(shopId: number, region: string) {
   const orders: any[] = detailData?.response?.order_list ?? [];
   const result = [];
 
-  // 批量获取tracking number（并发处理，速度更快）
-  const trackingPromises = orders.map(async (order: any) => {
+  // 只有PROCESSED状态的订单才需要tracking number
+  const processedOrders = orders.filter((o: any) => {
+    const status = orderList.find((ol:any) => ol.order_sn === o.order_sn)?.order_status;
+    return status === "PROCESSED";
+  });
+
+  const trackingPromises = processedOrders.map(async (order: any) => {
     const pkg = order.package_list?.[0];
     if (!pkg?.package_number) return { order_sn: order.order_sn, tracking: "" };
     const trackData = await shopeeGet("/api/v2/logistics/get_tracking_number", token, shopId, {
