@@ -12,10 +12,14 @@ const C = {
 };
 
 function photoUrl(url: string) {
-  if (url && url.startsWith("onedrive://")) {
+  if (!url) return "";
+  if (url.startsWith("onedrive://")) {
     return "/api/photo?id=" + url.replace("onedrive://", "");
   }
-  return url || "";
+  if (url.includes("private.blob.vercel-storage.com")) {
+    return "/api/blob?url=" + encodeURIComponent(url);
+  }
+  return url;
 }
 
 const statusLabel: Record<string,string> = { pending:"待配货", packed:"待审核", approved:"已完成", rejected:"待重拍", shipped_unreviewed:"未审核发出" };
@@ -660,9 +664,14 @@ function HighlightSku({ sku }: any) {
 
 function HistoryTab({ orders }: any) {
   const [search, setSearch] = useState("");
+  const [dateFilter, setDateFilter] = useState("");
   const done = orders.filter(o => o.status === "packed" || o.status === "approved" || o.status === "rejected");
-  const filtered = done.filter(o => !search || o.order_sn.includes(search) || (o.worker||"").includes(search));
-  const grouped = filtered.reduce((acc, o) => {
+  const filtered = done.filter(o => {
+    const matchSearch = !search || o.order_sn.includes(search.toUpperCase()) || (o.worker||"").toUpperCase().includes(search.toUpperCase());
+    const matchDate = !dateFilter || new Date(o.create_time * 1000).toISOString().startsWith(dateFilter);
+    return matchSearch && matchDate;
+  });
+  const grouped = filtered.reduce((acc: any, o: any) => {
     const date = new Date(o.create_time * 1000).toLocaleDateString("zh-CN", { month:"long", day:"numeric", weekday:"short" });
     if (!acc[date]) acc[date] = [];
     acc[date].push(o);
@@ -670,9 +679,15 @@ function HistoryTab({ orders }: any) {
   }, {});
   return (
     <div>
-      <div style={{ fontSize:15, fontWeight:600, marginBottom:12 }}>历史订单</div>
+      <div style={{ fontSize:9, color:C.muted, letterSpacing:3, textTransform:"uppercase", marginBottom:12 }}>历史订单</div>
       <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="搜索订单号或配货员…"
-        style={{ width:"100%", background:C.card, border:"1px solid "+C.border, borderRadius:10, padding:"10px 12px", color:C.text, fontSize:14, outline:"none", boxSizing:"border-box", marginBottom:16 }} />
+        style={{ width:"100%", background:"#ffffff", border:"1px solid rgba(120,105,80,0.2)", borderRadius:4, padding:"10px 12px", color:C.text, fontSize:13, outline:"none", boxSizing:"border-box", marginBottom:10 }} />
+      <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:16 }}>
+        <input type="date" value={dateFilter} onChange={e=>setDateFilter(e.target.value)}
+          style={{ flex:1, background:"#ffffff", border:"1px solid rgba(120,105,80,0.2)", borderRadius:4, padding:"9px 12px", color:dateFilter?C.text:C.muted, fontSize:13, outline:"none", fontFamily:"inherit" }} />
+        {dateFilter && <button onClick={() => setDateFilter("")}
+          style={{ background:"none", border:"none", color:C.muted, fontSize:13, cursor:"pointer", padding:"0 4px", fontFamily:"inherit" }}>× 清除</button>}
+      </div>
       {Object.keys(grouped).length === 0 && <div style={{ textAlign:"center", color:C.dim, padding:"40px 0" }}>暂无历史订单</div>}
       {Object.entries(grouped).map(([date, dayOrders]) => (
         <div key={date} style={{ marginBottom:24 }}>
