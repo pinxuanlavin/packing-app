@@ -1,0 +1,23 @@
+import { NextResponse } from "next/server";
+import { neon } from "@neondatabase/serverless";
+
+export async function GET() {
+  const sql = neon(process.env.DATABASE_URL!);
+  await sql`
+    CREATE TABLE IF NOT EXISTS shopee_tokens (
+      shop_id       INTEGER PRIMARY KEY,
+      access_token  TEXT,
+      refresh_token TEXT,
+      updated_at    INTEGER
+    )
+  `;
+  await sql`
+    INSERT INTO shopee_tokens (shop_id, access_token, refresh_token, updated_at)
+    VALUES (209859170, '46654e7854476f5a7a6a6f4b634a574a', '4f534a6e4a4b774870564c45464b4f4f', 1778814876)
+    ON CONFLICT (shop_id) DO UPDATE SET
+      access_token = EXCLUDED.access_token,
+      refresh_token = EXCLUDED.refresh_token,
+      updated_at = EXCLUDED.updated_at
+  `;
+  return NextResponse.json({ ok: true, message: "初始化完成" });
+}
