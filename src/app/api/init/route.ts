@@ -24,6 +24,6 @@ export async function GET() {
     VALUES (1778322972, '', ${process.env.SHOPEE_REFRESH_TOKEN_TH}, ${Math.floor(Date.now()/1000)})
     ON CONFLICT (shop_id) DO NOTHING
   `;
-  const rows = await sql\`SELECT shop_id, updated_at FROM shopee_tokens\`;
+  const rows = await sql`SELECT shop_id, updated_at FROM shopee_tokens`;
   return NextResponse.json({ ok: true, message: "Token已强制更新", tokens: rows });
 }
