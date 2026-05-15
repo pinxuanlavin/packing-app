@@ -101,13 +101,19 @@ async function fetchShopOrders(shopId: number, region: string) {
   if (!orderList.length) return [];
 
 
-  const sns = orderList.map((o: any) => o.order_sn).join(",");
-  const detailData = await shopeeGet("/api/v2/order/get_order_detail", token, shopId, {
-    order_sn_list: sns,
-    response_optional_fields: "item_list,package_list,shipping_carrier",
-  });
-
-  const orders: any[] = detailData?.response?.order_list ?? [];
+  // 分批处理，每次最多50个
+  const allOrders: any[] = [];
+  const batchSize = 48;
+  for (let i = 0; i < orderList.length; i += batchSize) {
+    const batch = orderList.slice(i, i + batchSize);
+    const sns = batch.map((o: any) => o.order_sn).join(",");
+    const detailData = await shopeeGet("/api/v2/order/get_order_detail", token, shopId, {
+      order_sn_list: sns,
+      response_optional_fields: "item_list,package_list,shipping_carrier",
+    });
+    allOrders.push(...(detailData?.response?.order_list ?? []));
+  }
+  const orders: any[] = allOrders;
   const result = [];
 
   // 只有PROCESSED状态的订单才需要tracking number
