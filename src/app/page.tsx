@@ -662,6 +662,98 @@ function HighlightSku({ sku }: any) {
   );
 }
 
+function HistoryOrderCard({ o }) {
+  const [open, setOpen] = React.useState(false);
+  return (
+    <div style={{ background:"#ffffff", border:"1px solid rgba(120,105,80,0.12)", borderRadius:4, marginBottom:8, overflow:"hidden" }}>
+      <div onClick={() => setOpen(!open)} style={{ padding:"12px 14px", cursor:"pointer", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+        <div style={{ flex:1 }}>
+          <div style={{ display:"flex", justifyContent:"space-between", marginBottom:4 }}>
+            <div style={{ fontSize:13, fontWeight:500, color:C.text }}>{o.order_sn}</div>
+            <span style={{ background:statusColor[o.status]+"15", color:statusColor[o.status], borderRadius:3, padding:"2px 8px", fontSize:10 }}>{statusLabel[o.status]}</span>
+          </div>
+          <div style={{ fontSize:11, color:C.muted }}>{o.items.map((i)=>i.model||i.sku).join("、")}</div>
+          {o.worker && <div style={{ fontSize:10, color:C.dim, marginTop:2 }}>配货员：{o.worker}</div>}
+        </div>
+        <span style={{ color:C.muted, fontSize:12, marginLeft:8 }}>{open?"▲":"▼"}</span>
+      </div>
+      {open && (
+        <div style={{ borderTop:"1px solid rgba(120,105,80,0.08)", padding:"12px 14px" }}>
+          {o.photos.length > 0 && (
+            <div style={{ marginBottom:12 }}>
+              <div style={{ fontSize:9, color:C.muted, letterSpacing:2, textTransform:"uppercase", marginBottom:8 }}>配货照片</div>
+              {o.photos.map((p, i) => (
+                <div key={i} style={{ marginBottom:8, borderRadius:4, overflow:"hidden", border:"1px solid rgba(120,105,80,0.12)" }}>
+                  <img src={photoUrl(p)} alt="" style={{ width:"100%", display:"block", objectFit:"contain", maxHeight:300 }} />
+                </div>
+              ))}
+            </div>
+          )}
+          <div style={{ background:"rgba(120,105,80,0.04)", borderRadius:3, padding:12 }}>
+            <div style={{ fontSize:9, color:C.muted, letterSpacing:2, textTransform:"uppercase", marginBottom:8 }}>配货清单</div>
+            {o.items.map((item, i) => (
+              <div key={i} style={{ display:"flex", alignItems:"center", gap:10, padding:"6px 0", borderBottom:"1px solid rgba(120,105,80,0.08)" }}>
+                {item.image && <img src={item.image} alt="" style={{ width:40, height:40, borderRadius:3, objectFit:"cover", flexShrink:0 }} />}
+                <div style={{ flex:1 }}>
+                  <div style={{ fontSize:12, color:C.text }}>{item.model||item.name.slice(0,30)}</div>
+                  <div style={{ fontSize:10, color:C.muted }}><HighlightSku sku={item.sku} /></div>
+                </div>
+                <span style={{ fontSize:16, color:C.text }}>x{item.qty}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function HistoryOrderCard({ o }) {
+  const [open, setOpen] = React.useState(false);
+  return (
+    <div style={{ background:"#ffffff", border:"1px solid rgba(120,105,80,0.12)", borderRadius:4, marginBottom:8, overflow:"hidden" }}>
+      <div onClick={() => setOpen(!open)} style={{ padding:"12px 14px", cursor:"pointer", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+        <div style={{ flex:1 }}>
+          <div style={{ display:"flex", justifyContent:"space-between", marginBottom:4 }}>
+            <div style={{ fontSize:13, fontWeight:500, color:C.text }}>{o.order_sn}</div>
+            <span style={{ background:statusColor[o.status]+"15", color:statusColor[o.status], borderRadius:3, padding:"2px 8px", fontSize:10 }}>{statusLabel[o.status]}</span>
+          </div>
+          <div style={{ fontSize:11, color:C.muted }}>{o.items.map((i)=>i.model||i.sku).join("、")}</div>
+          {o.worker && <div style={{ fontSize:10, color:C.dim, marginTop:2 }}>配货员：{o.worker}</div>}
+        </div>
+        <span style={{ color:C.muted, fontSize:12, marginLeft:8 }}>{open?"▲":"▼"}</span>
+      </div>
+      {open && (
+        <div style={{ borderTop:"1px solid rgba(120,105,80,0.08)", padding:"12px 14px" }}>
+          {o.photos.length > 0 && (
+            <div style={{ marginBottom:12 }}>
+              <div style={{ fontSize:9, color:C.muted, letterSpacing:2, textTransform:"uppercase", marginBottom:8 }}>配货照片</div>
+              {o.photos.map((p, i) => (
+                <div key={i} style={{ marginBottom:8, borderRadius:4, overflow:"hidden", border:"1px solid rgba(120,105,80,0.12)" }}>
+                  <img src={photoUrl(p)} alt="" style={{ width:"100%", display:"block", objectFit:"contain", maxHeight:300 }} />
+                </div>
+              ))}
+            </div>
+          )}
+          <div style={{ background:"rgba(120,105,80,0.04)", borderRadius:3, padding:12 }}>
+            <div style={{ fontSize:9, color:C.muted, letterSpacing:2, textTransform:"uppercase", marginBottom:8 }}>配货清单</div>
+            {o.items.map((item, i) => (
+              <div key={i} style={{ display:"flex", alignItems:"center", gap:10, padding:"6px 0", borderBottom:"1px solid rgba(120,105,80,0.08)" }}>
+                {item.image && <img src={item.image} alt="" style={{ width:40, height:40, borderRadius:3, objectFit:"cover", flexShrink:0 }} />}
+                <div style={{ flex:1 }}>
+                  <div style={{ fontSize:12, color:C.text }}>{item.model||item.name.slice(0,30)}</div>
+                  <div style={{ fontSize:10, color:C.muted }}><HighlightSku sku={item.sku} /></div>
+                </div>
+                <span style={{ fontSize:16, color:C.text }}>x{item.qty}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function HistoryTab({ orders }: any) {
   const [search, setSearch] = useState("");
   const [dateFilter, setDateFilter] = useState("");
