@@ -280,10 +280,10 @@ function ScanTab({ orders, scanInput, setScanInput, scanError, scanRef, onScan, 
       <div style={{ background:C.card, borderRadius:12, padding:"10px 16px", marginBottom:16, border:"1px solid "+C.border }}>
         <div style={{ display:"flex", justifyContent:"space-between", marginBottom:6 }}>
           <div style={{ fontSize:12, color:C.muted }}>配货进度</div>
-          <div style={{ fontSize:12, color:C.muted }}>{total} / {orders.filter(o=>o.shopee_status==="PROCESSED").length}</div>
+          <div style={{ fontSize:12, color:C.muted }}>{total} / {orders.filter(o=>o.shopee_status==="PROCESSED" && o.create_time*1000 >= todayStart.getTime()).length}</div>
         </div>
         <div style={{ background:C.border, borderRadius:4, height:6, overflow:"hidden" }}>
-          <div style={{ background:C.success, height:"100%", width: orders.filter(o=>o.shopee_status==="PROCESSED").length>0 ? (total/orders.filter(o=>o.shopee_status==="PROCESSED").length*100)+"%" : "0%", borderRadius:4, transition:"width .3s" }} />
+          <div style={{ background:C.success, height:"100%", width: orders.filter(o=>o.shopee_status==="PROCESSED" && o.create_time*1000 >= todayStart.getTime()).length>0 ? (total/orders.filter(o=>o.shopee_status==="PROCESSED" && o.create_time*1000 >= todayStart.getTime()).length*100)+"%" : "0%", borderRadius:4, transition:"width .3s" }} />
         </div>
       </div>
       <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:8, marginBottom:24 }}>
