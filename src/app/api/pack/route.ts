@@ -1,47 +1,34 @@
-import { neon } from '@neondatabase/serverless';
-import { NextResponse } from 'next/server';
-
-// 初始化 Neon 数据库连接
-const sql = neon(process.env.DATABASE_URL || '');
+import { NextResponse } from "next/server";
+import { updateOrderPacked } from "@/lib/db";
+import { uploadToOneDrive } from "@/lib/onedrive";
 
 export async function POST(request: Request) {
   try {
-    // 1. 安全解析前端传过来的数据
-    const body = await request.json();
-    const { orderId, imageUrl, status } = body;
+    const formData = await request.formData();
+    const orderSn  = formData.get("order_sn") as string;
+    const worker   = formData.get("worker") as string;
+    const files    = formData.getAll("photos") as File[];
 
-    // 健壮性检查：确保核心数据不为空
-    if (!imageUrl) {
-      return NextResponse.json(
-        { success: false, error: '图片地址不能为空' },
-        { status: 400 }
-      );
+    const date = new Date().toISOString().split("T")[0];
+    const photoPaths: string[] = [];
+
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const buffer = Buffer.from(await file.arrayBuffer());
+      const fname = `${i + 1}_${Date.now()}.jpg`;
+      
+      try {
+        const url = await uploadToOneDrive(buffer, fname, orderSn, date);
+        photoPaths.push(url);
+      } catch (e) {
+        console.error("OneDrive上传失败:", e);
+        photoPaths.push(`/uploads/${orderSn}/${fname}`);
+      }
     }
 
-    // 2. 将拍摄的订单信息写入 Neon 临时数据库
-    // 自动兼容防错：如果表不存在，或者字段写入失败，这里会抓取具体错误
-    await sql`
-      INSERT INTO pending_reviews (order_id, image_url, status, created_at)
-      VALUES (${orderId || 'UNKNOWN'}, ${imageUrl}, ${status || 'pending'}, NOW())
-    `;
-
-    // 3. 成功返回
-    return NextResponse.json({ 
-      success: true, 
-      message: '成功计入审核列表' 
-    });
-
-  } catch (error: any) {
-    // 核心修复：把服务器内部的 500 错误打印出来，防止白屏死机
-    console.error('【Aether Flow 打包 App 错误日志】:', error.message);
-    
-    return NextResponse.json(
-      { 
-        success: false, 
-        error: '临时数据库写入失败', 
-        details: error.message 
-      },
-      { status: 500 }
-    );
+    await updateOrderPacked(orderSn, worker, photoPaths);
+    return NextResponse.json({ ok: true, photos: photoPaths });
+  } catch (e: any) {
+    return NextResponse.json({ ok: false, error: e.message }, { status: 500 });
   }
 }
