@@ -251,9 +251,13 @@ function ScanTab({ orders, scanInput, setScanInput, scanError, scanRef, onScan, 
   const [quickList, setQuickList] = useState(null);
   const unscheduled = orders.filter(o => o.shopee_status === "READY_TO_SHIP");
 
-  // 今日配货window：昨天14:00之后，排除之前的问题订单
+  // 今日配货window：昨天14:00 → 今天14:00，不含明日订单
   const yc = new Date(); yc.setDate(yc.getDate() - 1); yc.setHours(14, 0, 0, 0);
-  const todayOrders = orders.filter(o => o.create_time * 1000 >= yc.getTime());
+  const tc = new Date(); tc.setHours(14, 0, 0, 0);
+  const todayOrders = orders.filter(o => {
+    const t = o.create_time * 1000;
+    return t >= yc.getTime() && t < tc.getTime();
+  });
   const pending  = todayOrders.filter(o => o.status === "pending");
   const inReview = todayOrders.filter(o => o.review_status === "pending");
   const rejected = todayOrders.filter(o => o.review_status === "rejected");
