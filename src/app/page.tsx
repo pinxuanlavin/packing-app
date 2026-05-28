@@ -557,6 +557,13 @@ function PackingDetail({ order, worker, onBack, onReload, onPreview }: any) {
     toAdd.forEach((file, localIdx) => uploadPhoto(file, startIdx + localIdx));
   }
 
+  function removePhoto(i: number) {
+    URL.revokeObjectURL(previews[i]);
+    setPhotos(prev => prev.filter((_, idx) => idx !== i));
+    setPreviews(prev => prev.filter((_, idx) => idx !== i));
+    setUploadedUrls(prev => prev.filter((_, idx) => idx !== i));
+  }
+
   async function submit() {
     const urls = uploadedUrls.slice(0, photos.length);
     if (!urls.length || urls.some(u => u === null || u === "error")) return;
@@ -627,6 +634,10 @@ function PackingDetail({ order, worker, onBack, onReload, onPreview }: any) {
                 )}
                 {previews[i] && typeof uploadedUrls[i] === "string" && (
                   <div style={{ position:"absolute", bottom:4, right:4, background:C.success, borderRadius:"50%", width:20, height:20, display:"flex", alignItems:"center", justifyContent:"center", fontSize:11, color:"#fff" }}>✓</div>
+                )}
+                {previews[i] && uploadedUrls[i] !== null && (
+                  <button onClick={e => { e.stopPropagation(); removePhoto(i); }}
+                    style={{ position:"absolute", top:4, left:4, background:"rgba(0,0,0,0.55)", border:"none", borderRadius:"50%", width:22, height:22, display:"flex", alignItems:"center", justifyContent:"center", fontSize:13, color:"#fff", cursor:"pointer", lineHeight:1 }}>×</button>
                 )}
               </div>
             ))}
