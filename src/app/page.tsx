@@ -82,6 +82,14 @@ export default function App() {
     alert(`已重置 ${data.reset} 单`);
   }
 
+  async function clearBacklog() {
+    if (!confirm("确认清除所有积压订单？这些订单将标记为「未审核发出」，不可撤销。")) return;
+    const res = await fetch("/api/admin/clear-backlog", { method: "POST" });
+    const data = await res.json();
+    await loadOrders();
+    alert(`已清除积压 ${data.cleared} 单`);
+  }
+
   async function doScan(code: string) {
     const res = await fetch("/api/scan?code=" + encodeURIComponent(code));
     const data = await res.json();
@@ -176,7 +184,7 @@ export default function App() {
       </div>
       </div>
       <div style={{ padding: tab==="history"||tab==="review" ? "20px 0 80px" : "20px 20px 80px" }}>
-        {tab==="scan" && <div style={{padding:"0 20px"}}><ScanTab orders={orders} scanInput={scanInput} setScanInput={setScanInput} scanError={scanError} scanRef={scanRef} onScan={handleScan} onSelect={setActive} onSync={syncOrders} syncing={syncing} onOpenScanner={() => setShowScanner(true)} todayDue={todayDue} tomorrowDue={tomorrowDue} todayApproved={todayApproved} /></div>}
+        {tab==="scan" && <div style={{padding:"0 20px"}}><ScanTab orders={orders} scanInput={scanInput} setScanInput={setScanInput} scanError={scanError} scanRef={scanRef} onScan={handleScan} onSelect={setActive} onSync={syncOrders} syncing={syncing} onOpenScanner={() => setShowScanner(true)} todayDue={todayDue} tomorrowDue={tomorrowDue} todayApproved={todayApproved} worker={worker} onClearBacklog={clearBacklog} /></div>}
         {tab==="list" && <div style={{padding:"0 20px"}}><ListTab orders={orders} onSelect={setActive} /></div>}
         {tab==="review" && worker.role==="boss" && <div style={{padding:"0 20px"}}><ReviewTab orders={orders} onReview={handleReview} /></div>}
         {tab==="history" && <div style={{padding:"0 20px"}}><HistoryTab orders={orders} onPreview={setPreviewImg} /></div>}
@@ -247,13 +255,15 @@ function WorkerPicker({ workers, onSelect, onAdd }: { workers: any[], onSelect: 
   );
 }
 
-function ScanTab({ orders, scanInput, setScanInput, scanError, scanRef, onScan, onSelect, onSync, syncing, onOpenScanner, todayDue, tomorrowDue, todayApproved }: any) {
+function ScanTab({ orders, scanInput, setScanInput, scanError, scanRef, onScan, onSelect, onSync, syncing, onOpenScanner, todayDue, tomorrowDue, todayApproved, worker, onClearBacklog }: any) {
   const [quickList, setQuickList] = useState(null);
   const unscheduled = orders.filter(o => o.shopee_status === "READY_TO_SHIP");
 
   // 今日配货window：昨天14:00 → 今天14:00，不含明日订单
   const yc = new Date(); yc.setDate(yc.getDate() - 1); yc.setHours(14, 0, 0, 0);
   const tc = new Date(); tc.setHours(14, 0, 0, 0);
+  // 积压：昨天14:00之前、status仍为pending的订单
+  const backlog = orders.filter(o => o.status === "pending" && o.create_time * 1000 < yc.getTime());
   const todayOrders = orders.filter(o => {
     const t = o.create_time * 1000;
     return t >= yc.getTime() && t < tc.getTime();
@@ -265,6 +275,19 @@ function ScanTab({ orders, scanInput, setScanInput, scanError, scanRef, onScan, 
   const total = todayApproved.length;
   return (
     <div>
+      {backlog.length > 0 && (
+        <div style={{ background:"rgba(138,101,48,0.1)", border:"1px solid rgba(138,101,48,0.35)", borderRadius:8, padding:"12px 14px", marginBottom:12, display:"flex", justifyContent:"space-between", alignItems:"center", gap:12 }}>
+          <div>
+            <div style={{ fontSize:13, color:C.warning, fontWeight:600 }}>积压未处理 {backlog.length} 单</div>
+            <div style={{ fontSize:10, color:C.muted, marginTop:2 }}>昨日14:00前的订单未完成配货</div>
+          </div>
+          {worker?.role === "boss" && (
+            <button onClick={onClearBacklog} style={{ background:C.warning, border:"none", borderRadius:4, padding:"7px 12px", color:"#fff", fontSize:11, cursor:"pointer", whiteSpace:"nowrap", flexShrink:0 }}>
+              一键清除
+            </button>
+          )}
+        </div>
+      )}
       <div style={{ background:"#ffffff", border:"1px solid rgba(120,105,80,0.15)", borderRadius:4, padding:"16px", marginBottom:16 }}>
         <div style={{ fontSize:9, color:C.muted, letterSpacing:3, textTransform:"uppercase", marginBottom:12 }}>📦 扫描配货</div>
         <form onSubmit={onScan}>
