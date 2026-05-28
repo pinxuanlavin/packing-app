@@ -25,13 +25,15 @@ export async function GET(request: Request) {
   if (!fileId) return NextResponse.json({ error: "缺少id" }, { status: 400 });
 
   const token = await getAccessToken();
-  const res = await fetch(`https://graph.microsoft.com/v1.0/me/drive/items/${fileId}`, {
+
+  // /content 直接返回 302 到下载链接，一次调用替代两次
+  const res = await fetch(`https://graph.microsoft.com/v1.0/me/drive/items/${fileId}/content`, {
     headers: { Authorization: `Bearer ${token}` },
+    redirect: "manual",
   });
-  const data = await res.json();
-  const url = data["@microsoft.graph.downloadUrl"];
-  if (!url) return NextResponse.json({ error: "获取失败" }, { status: 500 });
-  
-  // 重定向到实际图片
+
+  const url = res.headers.get("Location");
+  if (!url) return NextResponse.json({ error: "获取下载链接失败" }, { status: 500 });
+
   return NextResponse.redirect(url);
 }

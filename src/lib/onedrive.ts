@@ -23,15 +23,13 @@ async function getAccessToken(): Promise<string> {
   return data.access_token;
 }
 
-export async function uploadToOneDrive(
+async function uploadFileWithToken(
+  token: string,
   fileBuffer: Buffer,
   fileName: string,
   orderSn: string,
   date: string
 ): Promise<string> {
-  const token = await getAccessToken();
-  
-  // 文件夹路径：PackFlow配货照片/2026-05-14/ORDER_SN/
   const folderPath = `PackFlow配货照片/${date}/${orderSn}`;
   const uploadPath = `/me/drive/root:/${folderPath}/${fileName}:/content`;
 
@@ -46,7 +44,35 @@ export async function uploadToOneDrive(
 
   const data = await res.json();
   if (!data.id) throw new Error("上传失败: " + JSON.stringify(data));
-  
-  // 返回 onedrive://文件ID 格式，后续通过API实时获取下载链接
+
   return `onedrive://${data.id}`;
+}
+
+// 取一次 token，所有文件并行上传
+export async function uploadMultipleToOneDrive(
+  files: File[],
+  orderSn: string,
+  date: string
+): Promise<string[]> {
+  const token = await getAccessToken();
+  const ts = Date.now();
+
+  return Promise.all(
+    files.map((file, i) =>
+      file.arrayBuffer().then(buf =>
+        uploadFileWithToken(token, Buffer.from(buf), `${i + 1}_${ts}.jpg`, orderSn, date)
+      )
+    )
+  );
+}
+
+// 保留单文件接口供 photo 路由使用
+export async function uploadToOneDrive(
+  fileBuffer: Buffer,
+  fileName: string,
+  orderSn: string,
+  date: string
+): Promise<string> {
+  const token = await getAccessToken();
+  return uploadFileWithToken(token, fileBuffer, fileName, orderSn, date);
 }

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { updateOrderPacked } from "@/lib/db";
-import { uploadToOneDrive } from "@/lib/onedrive";
+import { uploadMultipleToOneDrive } from "@/lib/onedrive";
 
 export async function POST(request: Request) {
   try {
@@ -10,21 +10,7 @@ export async function POST(request: Request) {
     const files    = formData.getAll("photos") as File[];
 
     const date = new Date().toISOString().split("T")[0];
-    const photoPaths: string[] = [];
-
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i];
-      const buffer = Buffer.from(await file.arrayBuffer());
-      const fname = `${i + 1}_${Date.now()}.jpg`;
-      
-      try {
-        const url = await uploadToOneDrive(buffer, fname, orderSn, date);
-        photoPaths.push(url);
-      } catch (e) {
-        console.error("OneDrive上传失败:", e);
-        photoPaths.push(`/uploads/${orderSn}/${fname}`);
-      }
-    }
+    const photoPaths = await uploadMultipleToOneDrive(files, orderSn, date);
 
     await updateOrderPacked(orderSn, worker, photoPaths);
     return NextResponse.json({ ok: true, photos: photoPaths });

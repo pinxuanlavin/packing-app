@@ -74,6 +74,14 @@ export default function App() {
     setSyncing(false);
   }
 
+  async function resetOrders() {
+    if (!confirm("确认重置所有待审核/已拒绝订单回到「待配货」？此操作不可撤销。")) return;
+    const res = await fetch("/api/admin/reset", { method: "POST" });
+    const data = await res.json();
+    await loadOrders();
+    alert(`已重置 ${data.reset} 单`);
+  }
+
   async function doScan(code: string) {
     const res = await fetch("/api/scan?code=" + encodeURIComponent(code));
     const data = await res.json();
@@ -108,6 +116,9 @@ export default function App() {
     const created = new Date(o.create_time * 1000);
     return created >= todayCutoff && created <= todayMidnight;
   });
+  const todayStart = new Date(); todayStart.setHours(0,0,0,0);
+  const todayApproved = orders.filter(o => o.review_status === "approved" && o.reviewed_at && o.reviewed_at * 1000 >= todayStart.getTime());
+  const totalArranged = orders.filter(o => o.shopee_status === "READY_TO_SHIP" || o.shopee_status === "PROCESSED");
 
 
   if (!unlocked) return (
@@ -160,15 +171,16 @@ export default function App() {
         <div style={{ display:"flex", gap:8 }}>
           <button onClick={syncOrders} disabled={syncing} style={{ background:"#ffffff", border:"1px solid rgba(120,105,80,0.2)", borderRadius:3, padding:"6px 12px", color:"#1e1c18", fontSize:11, cursor:"pointer" }}>
             {syncing ? "同步中…" : "↻ 同步"+(lastSync?" "+lastSync:"")}</button>
+          {worker.role==="boss" && <button onClick={resetOrders} style={{ background:"#ffffff", border:"1px solid rgba(138,53,48,0.35)", borderRadius:3, padding:"4px 10px", color:C.danger, fontSize:11, cursor:"pointer" }}>重置</button>}
           <button onClick={() => { setWorker(null); localStorage.removeItem("worker"); }} style={{ background:"#ffffff", border:"1px solid rgba(120,105,80,0.2)", borderRadius:3, padding:"4px 10px", color:"#1e1c18", fontSize:11, cursor:"pointer" }}>换人</button>
         </div>
       </div>
       </div>
       <div style={{ padding: tab==="history"||tab==="review" ? "20px 0 80px" : "20px 20px 80px" }}>
-        {tab==="scan" && <div style={{padding:"0 20px"}}><ScanTab orders={orders} scanInput={scanInput} setScanInput={setScanInput} scanError={scanError} scanRef={scanRef} onScan={handleScan} onSelect={setActive} onSync={syncOrders} syncing={syncing} onOpenScanner={() => setShowScanner(true)} todayDue={todayDue} tomorrowDue={tomorrowDue} /></div>}
+        {tab==="scan" && <div style={{padding:"0 20px"}}><ScanTab orders={orders} scanInput={scanInput} setScanInput={setScanInput} scanError={scanError} scanRef={scanRef} onScan={handleScan} onSelect={setActive} onSync={syncOrders} syncing={syncing} onOpenScanner={() => setShowScanner(true)} todayDue={todayDue} tomorrowDue={tomorrowDue} todayApproved={todayApproved} totalArranged={totalArranged} /></div>}
         {tab==="list" && <div style={{padding:"0 20px"}}><ListTab orders={orders} onSelect={setActive} /></div>}
         {tab==="review" && worker.role==="boss" && <div style={{padding:"0 20px"}}><ReviewTab orders={orders} onReview={handleReview} /></div>}
-        {tab==="history" && <div style={{padding:"0 20px"}}><HistoryTab orders={orders} /></div>}
+        {tab==="history" && <div style={{padding:"0 20px"}}><HistoryTab orders={orders} onPreview={setPreviewImg} /></div>}
         {tab==="review" && worker.role!=="boss" && <div style={{ textAlign:"center", color:C.dim, padding:"60px 0" }}>复核功能仅限复核账号</div>}
       </div>
       <div style={{ position:"fixed", bottom:0, left:"50%", transform:"translateX(-50%)", width:"100%", maxWidth:480, background:C.bg, borderTop:"1px solid rgba(120,105,80,0.15)", display:"flex" }}>
@@ -236,14 +248,14 @@ function WorkerPicker({ workers, onSelect, onAdd }: { workers: any[], onSelect: 
   );
 }
 
-function ScanTab({ orders, scanInput, setScanInput, scanError, scanRef, onScan, onSelect, onSync, syncing, onOpenScanner, todayDue, tomorrowDue }: any) {
+function ScanTab({ orders, scanInput, setScanInput, scanError, scanRef, onScan, onSelect, onSync, syncing, onOpenScanner, todayDue, tomorrowDue, todayApproved, totalArranged }: any) {
   const [quickList, setQuickList] = useState(null);
   const unscheduled = orders.filter(o => o.shopee_status === "READY_TO_SHIP");
   const pending  = orders.filter(o => o.status === "pending" && o.shopee_status === "PROCESSED");
   const rejected = orders.filter(o => o.review_status === "rejected");
   const inReview = orders.filter(o => o.review_status === "pending");
   const todayStart = new Date(); todayStart.setHours(0,0,0,0);
-  const total = orders.filter(o => o.review_status === "approved" && o.reviewed_at && o.reviewed_at * 1000 >= todayStart.getTime()).length;
+  const total = todayApproved.length;
   return (
     <div>
       <div style={{ background:"#ffffff", border:"1px solid rgba(120,105,80,0.15)", borderRadius:4, padding:"16px", marginBottom:16 }}>
@@ -262,19 +274,19 @@ function ScanTab({ orders, scanInput, setScanInput, scanError, scanRef, onScan, 
         </form>
       </div>
       <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:12 }}>
-        <div onClick={() => setQuickList(quickList==="今日完成"?null:"今日配货")}
+        <div onClick={() => setQuickList(quickList==="今日完成"?null:"今日完成")}
           style={{ background:quickList==="今日完成"?"rgba(58,90,138,0.08)":C.card, borderRadius:12, padding:"12px 16px", border:"1px solid "+(quickList==="今日完成"?"rgba(58,90,138,0.4)":C.border), display:"flex", justifyContent:"space-between", alignItems:"center", cursor:"pointer" }}>
           <div style={{ fontSize:13, color:C.muted }}>今日完成</div>
           <div style={{ fontSize:20, fontWeight:700, color:C.text }}>{total} 单</div>
         </div>
-        <div onClick={() => setQuickList(quickList==="待安排"?null:"待安排")}
-          style={{ background:quickList==="待安排"?"rgba(138,53,48,0.08)":C.card, borderRadius:12, padding:"12px 16px", border:"1px solid "+(quickList==="待安排"?C.danger:todayDue.length>0?C.danger:C.border), display:"flex", justifyContent:"space-between", alignItems:"center", cursor:"pointer" }}>
+        <div onClick={() => setQuickList(quickList==="今日配货"?null:"今日配货")}
+          style={{ background:quickList==="今日配货"?"rgba(138,53,48,0.08)":C.card, borderRadius:12, padding:"12px 16px", border:"1px solid "+(quickList==="今日配货"?C.danger:todayDue.length>0?C.danger:C.border), display:"flex", justifyContent:"space-between", alignItems:"center", cursor:"pointer" }}>
           <div>
-            <div style={{ fontSize:13, color:C.muted }}>待安排</div>
+            <div style={{ fontSize:13, color:C.muted }}>今日配货</div>
             <div style={{ fontSize:9, color:C.danger, letterSpacing:1, marginTop:2 }}>今日必发 {todayDue.length} 单</div>
             <div style={{ fontSize:9, color:C.muted, letterSpacing:1, marginTop:1 }}>明日待发 {tomorrowDue.length} 单</div>
           </div>
-          <div style={{ fontSize:20, fontWeight:700, color:todayDue.length>0?C.danger:C.muted }}>{unscheduled.length} 单</div>
+          <div style={{ fontSize:20, fontWeight:700, color:todayDue.length>0?C.danger:C.muted }}>{totalArranged.length} 单</div>
         </div>
       </div>
       <div style={{ background:C.card, borderRadius:12, padding:"10px 16px", marginBottom:16, border:"1px solid "+C.border }}>
@@ -298,28 +310,28 @@ function ScanTab({ orders, scanInput, setScanInput, scanError, scanRef, onScan, 
       {quickList && (
         <div style={{ marginBottom:20 }}>
           <div style={{ fontSize:13, color:C.muted, fontWeight:600, marginBottom:10 }}>
-            {quickList} ({(quickList==="待配货"?pending:quickList==="待审核"?inReview:quickList==="待重拍"?rejected:quickList==="今日完成"?orders.filter(o=>o.shopee_status==="PROCESSED"):unscheduled).length})
+            {quickList} ({(quickList==="待配货"?pending:quickList==="待审核"?inReview:quickList==="待重拍"?rejected:quickList==="今日完成"?todayApproved:unscheduled).length})
             <button onClick={() => setQuickList(null)} style={{ float:"right", background:"none", border:"none", color:C.dim, cursor:"pointer", fontSize:12 }}>收起 ↑</button>
           </div>
-          {quickList==="待安排" && todayDue.length > 0 && (
+          {quickList==="今日配货" && todayDue.length > 0 && (
             <div style={{ fontSize:9, color:C.danger, letterSpacing:2, textTransform:"uppercase", marginBottom:6 }}>今日必发</div>
           )}
-          {quickList==="待安排" && todayDue.map(o => (
+          {quickList==="今日配货" && todayDue.map(o => (
             <div key={o.order_sn} style={{ background:"rgba(138,53,48,0.06)", border:"1px solid rgba(138,53,48,0.25)", borderRadius:4, padding:"10px 14px", marginBottom:6 }}>
               <div style={{ fontSize:12, fontWeight:500, color:C.text }}>{o.order_sn}</div>
               <div style={{ fontSize:10, color:C.muted, marginTop:2 }}>{o.items.map(i=>i.model||i.sku).join("、")}</div>
             </div>
           ))}
-          {quickList==="待安排" && tomorrowDue.length > 0 && (
+          {quickList==="今日配货" && tomorrowDue.length > 0 && (
             <div style={{ fontSize:9, color:C.muted, letterSpacing:2, textTransform:"uppercase", margin:"10px 0 6px" }}>明日发货</div>
           )}
-          {quickList==="待安排" && tomorrowDue.map(o => (
+          {quickList==="今日配货" && tomorrowDue.map(o => (
             <div key={o.order_sn} style={{ background:"#ffffff", border:"1px solid rgba(120,105,80,0.12)", borderRadius:4, padding:"10px 14px", marginBottom:6 }}>
               <div style={{ fontSize:12, fontWeight:500, color:C.text }}>{o.order_sn}</div>
               <div style={{ fontSize:10, color:C.muted, marginTop:2 }}>{o.items.map(i=>i.model||i.sku).join("、")}</div>
             </div>
           ))}
-          {quickList!=="待安排" && (quickList==="待配货"?pending:quickList==="待审核"?inReview:quickList==="待重拍"?rejected:quickList==="今日完成"?orders.filter(o=>o.shopee_status==="PROCESSED"):unscheduled).map(o => (
+          {quickList!=="今日配货" && (quickList==="待配货"?pending:quickList==="待审核"?inReview:quickList==="待重拍"?rejected:quickList==="今日完成"?todayApproved:unscheduled).map(o => (
             <div key={o.order_sn} onClick={() => onSelect(o)}
               style={{ background: quickList==="待重拍"?"rgba(138,53,48,0.05)":"#ffffff", border:"1px solid "+(quickList==="待重拍"?"rgba(138,53,48,0.3)":"rgba(120,105,80,0.12)"), borderRadius:4, padding:"12px 14px", marginBottom:6, cursor:"pointer" }}>
               <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
@@ -338,8 +350,8 @@ function ScanTab({ orders, scanInput, setScanInput, scanError, scanRef, onScan, 
               </div>
             </div>
           ))}
-          {quickList==="待安排" && todayDue.length===0 && tomorrowDue.length===0 && (
-            <div style={{ textAlign:"center", color:C.dim, fontSize:12, padding:"20px 0" }}>暂无待安排订单</div>
+          {quickList==="今日配货" && todayDue.length===0 && tomorrowDue.length===0 && (
+            <div style={{ textAlign:"center", color:C.dim, fontSize:12, padding:"20px 0" }}>暂无待配货订单</div>
           )}
         </div>
       )}
@@ -663,7 +675,7 @@ function HighlightSku({ sku }: any) {
   );
 }
 
-function HistoryTab({ orders }: any) {
+function HistoryTab({ orders, onPreview }: any) {
   const [search, setSearch] = useState("");
   const [dateFilter, setDateFilter] = useState("");
   const done = orders.filter(o => o.status === "packed" || o.status === "approved" || o.status === "rejected");
@@ -705,7 +717,7 @@ function HistoryTab({ orders }: any) {
               {o.photos.length > 0 && (
                 <div style={{ display:"flex", gap:6, marginTop:8 }}>
                   {o.photos.map((p,i) => (
-                    <img key={i} src={photoUrl(p)} alt="" style={{ width:56, height:56, borderRadius:6, objectFit:"cover" }} />
+                    <img key={i} src={photoUrl(p)} alt="" onClick={() => onPreview(photoUrl(p))} style={{ width:56, height:56, borderRadius:6, objectFit:"cover", cursor:"pointer" }} />
                   ))}
                 </div>
               )}
