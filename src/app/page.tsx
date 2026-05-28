@@ -455,6 +455,7 @@ function PackingDetail({ order, worker, onBack, onReload, onPreview }: any) {
   const [previews, setPreviews] = useState([]);
   const [submitting, setSubmitting] = useState(false);
   const [previewImg, setPreviewImg] = useState<string|null>(null);
+  const [uploadedUrls, setUploadedUrls] = useState<(string|null|"error")[]>([]);
   const fileRef = useRef(null);
 
   if (previewImg) return (
@@ -504,25 +505,75 @@ function PackingDetail({ order, worker, onBack, onReload, onPreview }: any) {
   );
 
 
+  async function compressImage(file: File): Promise<File> {
+    return new Promise(resolve => {
+      const img = new Image();
+      const blobUrl = URL.createObjectURL(file);
+      img.onload = () => {
+        const MAX = 1600;
+        let { width: w, height: h } = img;
+        if (w > MAX) { h = Math.round(h * MAX / w); w = MAX; }
+        if (h > MAX) { w = Math.round(w * MAX / h); h = MAX; }
+        const canvas = document.createElement("canvas");
+        canvas.width = w; canvas.height = h;
+        canvas.getContext("2d")!.drawImage(img, 0, 0, w, h);
+        canvas.toBlob(blob => {
+          URL.revokeObjectURL(blobUrl);
+          resolve(new File([blob!], file.name, { type: "image/jpeg" }));
+        }, "image/jpeg", 0.82);
+      };
+      img.src = blobUrl;
+    });
+  }
+
+  async function uploadPhoto(file: File, globalIdx: number) {
+    try {
+      const compressed = await compressImage(file);
+      const fd = new FormData();
+      fd.append("photo", compressed);
+      fd.append("order_sn", order.order_sn);
+      const res = await fetch("/api/pack/upload", { method: "POST", body: fd });
+      const data = await res.json();
+      if (!data.ok || !data.url) throw new Error(data.error || "上传失败");
+      setUploadedUrls(prev => { const u = [...prev]; u[globalIdx] = data.url; return u; });
+    } catch {
+      setUploadedUrls(prev => { const u = [...prev]; u[globalIdx] = "error"; return u; });
+    }
+  }
+
   function addPhoto(e) {
-    const files = Array.from(e.target.files ?? []);
-    if (!files.length) return;
-    const newPhotos = [...photos, ...files].slice(0, 3);
-    setPhotos(newPhotos);
-    setPreviews(newPhotos.map(f => URL.createObjectURL(f)));
+    const newFiles = Array.from(e.target.files ?? []) as File[];
+    if (!newFiles.length) return;
+    const startIdx = photos.length;
+    const toAdd = newFiles.slice(0, 3 - startIdx);
+    if (!toAdd.length) return;
+    setPhotos(prev => [...prev, ...toAdd]);
+    setPreviews(prev => [...prev, ...toAdd.map(f => URL.createObjectURL(f))]);
+    setUploadedUrls(prev => {
+      const u = [...prev];
+      toAdd.forEach((_, i) => { u[startIdx + i] = null; });
+      return u;
+    });
+    toAdd.forEach((file, localIdx) => uploadPhoto(file, startIdx + localIdx));
   }
 
   async function submit() {
-    if (!photos.length) return;
+    const urls = uploadedUrls.slice(0, photos.length);
+    if (!urls.length || urls.some(u => u === null || u === "error")) return;
     setSubmitting(true);
-    const fd = new FormData();
-    fd.append("order_sn", order.order_sn);
-    fd.append("worker", worker);
-    photos.forEach(p => fd.append("photos", p));
-    await fetch("/api/pack", { method:"POST", body:fd });
+    await fetch("/api/pack", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ order_sn: order.order_sn, worker, photos: urls }),
+    });
     await onReload();
     onBack();
   }
+
+  const _urls = uploadedUrls.slice(0, photos.length);
+  const _done = _urls.filter(u => typeof u === "string").length;
+  const _err  = _urls.some(u => u === "error");
+  const _all  = photos.length > 0 && _done === photos.length;
 
   return (
     <div style={{ background:C.bg, minHeight:"100vh", color:C.text, fontFamily:"sans-serif", maxWidth:480, margin:"0 auto" }}>
@@ -558,18 +609,38 @@ function PackingDetail({ order, worker, onBack, onReload, onPreview }: any) {
           <div style={{ fontSize:12, color:C.muted, marginBottom:12 }}>建议：整体全景、商品特写、快递单</div>
           <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:10 }}>
             {[0,1,2].map(i => (
-              <div key={i} onClick={() => i<=photos.length && photos.length<3 && fileRef.current?.click()}
-                style={{ aspectRatio:"1", background:C.card, border:"1.5px dashed "+(i<previews.length?C.success:i===previews.length?C.accent:C.border), borderRadius:10, overflow:"hidden", cursor:i<=photos.length&&photos.length<3?"pointer":"default", display:"flex", alignItems:"center", justifyContent:"center", fontSize:i<previews.length?28:22, color:i<previews.length?C.success:i===previews.length?C.accent:C.dim }}>
+              <div key={i}
+                onClick={() => {
+                  if (uploadedUrls[i] === "error") uploadPhoto(photos[i], i);
+                  else if (i <= photos.length && photos.length < 3) fileRef.current?.click();
+                }}
+                style={{ aspectRatio:"1", background:C.card, border:"1.5px dashed "+(i<previews.length?(uploadedUrls[i]==="error"?C.danger:C.success):i===previews.length?C.accent:C.border), borderRadius:10, overflow:"hidden", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", fontSize:i<previews.length?28:22, color:i<previews.length?C.success:i===previews.length?C.accent:C.dim, position:"relative" }}>
                 {previews[i] ? <img src={previews[i]} alt="" style={{ width:"100%", height:"100%", objectFit:"cover" }} /> : i===previews.length?"+":"○"}
+                {previews[i] && uploadedUrls[i] === null && (
+                  <div style={{ position:"absolute", inset:0, background:"rgba(0,0,0,0.45)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:22 }}>⏳</div>
+                )}
+                {previews[i] && uploadedUrls[i] === "error" && (
+                  <div style={{ position:"absolute", inset:0, background:"rgba(138,53,48,0.75)", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", gap:2, color:"#fff" }}>
+                    <span style={{ fontSize:20 }}>✕</span>
+                    <span style={{ fontSize:10 }}>点击重试</span>
+                  </div>
+                )}
+                {previews[i] && typeof uploadedUrls[i] === "string" && (
+                  <div style={{ position:"absolute", bottom:4, right:4, background:C.success, borderRadius:"50%", width:20, height:20, display:"flex", alignItems:"center", justifyContent:"center", fontSize:11, color:"#fff" }}>✓</div>
+                )}
               </div>
             ))}
           </div>
           <input ref={fileRef} type="file" accept="image/*" capture="environment" onChange={addPhoto} style={{ display:"none" }} multiple />
-          {photos.length > 0 && <div style={{ marginTop:8, fontSize:12, color:C.success }}>已选 {photos.length} 张</div>}
+          {photos.length > 0 && (
+            <div style={{ marginTop:8, fontSize:12, color: _all ? C.success : _err ? C.danger : C.warning }}>
+              {_all ? `已上传 ${photos.length} 张，可提交` : _err ? "部分照片上传失败，点击重试" : `上传中… ${_done}/${photos.length}`}
+            </div>
+          )}
         </div>
-        <button onClick={submit} disabled={!photos.length||submitting}
-          style={{ width:"100%", background:photos.length>0?C.accent:C.border, border:"none", borderRadius:12, padding:"16px 0", color:photos.length>0?"#fff":C.dim, fontSize:16, fontWeight:600, cursor:photos.length>0?"pointer":"not-allowed" }}>
-          {submitting?"提交中…":"提交配货"+(photos.length>0?" ("+photos.length+"张)":"")}
+        <button onClick={submit} disabled={!_all || submitting}
+          style={{ width:"100%", background:_all?C.accent:C.border, border:"none", borderRadius:12, padding:"16px 0", color:_all?"#fff":C.dim, fontSize:16, fontWeight:600, cursor:_all?"pointer":"not-allowed" }}>
+          {submitting ? "提交中…" : _err ? "上传失败，点击重试" : !_all && photos.length > 0 ? `上传中… (${_done}/${photos.length})` : _all ? `提交配货 (${photos.length}张)` : "请先拍照"}
         </button>
       </div>
     </div>
