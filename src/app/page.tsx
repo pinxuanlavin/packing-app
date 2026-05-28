@@ -249,13 +249,15 @@ function WorkerPicker({ workers, onSelect, onAdd }: { workers: any[], onSelect: 
 
 function ScanTab({ orders, scanInput, setScanInput, scanError, scanRef, onScan, onSelect, onSync, syncing, onOpenScanner, todayDue, tomorrowDue, todayApproved }: any) {
   const [quickList, setQuickList] = useState(null);
-  const unscheduled    = orders.filter(o => o.shopee_status === "READY_TO_SHIP");
-  const processedOrders = orders.filter(o => o.shopee_status === "PROCESSED");
-  const inReview = orders.filter(o => o.review_status === "pending");
-  const rejected = orders.filter(o => o.review_status === "rejected");
-  // 待配货 = PROCESSED 里 status 还是 pending 的（没有提交照片的）
-  const pending  = processedOrders.filter(o => o.status === "pending");
-  const todayStart = new Date(); todayStart.setHours(0,0,0,0);
+  const unscheduled = orders.filter(o => o.shopee_status === "READY_TO_SHIP");
+
+  // 今日配货window：昨天14:00之后，排除之前的问题订单
+  const yc = new Date(); yc.setDate(yc.getDate() - 1); yc.setHours(14, 0, 0, 0);
+  const todayOrders = orders.filter(o => o.create_time * 1000 >= yc.getTime());
+  const pending  = todayOrders.filter(o => o.status === "pending");
+  const inReview = todayOrders.filter(o => o.review_status === "pending");
+  const rejected = todayOrders.filter(o => o.review_status === "rejected");
+  const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
   const total = todayApproved.length;
   return (
     <div>
@@ -287,16 +289,16 @@ function ScanTab({ orders, scanInput, setScanInput, scanError, scanRef, onScan, 
             <div style={{ fontSize:9, color:C.danger, letterSpacing:1, marginTop:2 }}>今日必发 {todayDue.length} 单</div>
             <div style={{ fontSize:9, color:C.muted, letterSpacing:1, marginTop:1 }}>明日待发 {tomorrowDue.length} 单</div>
           </div>
-          <div style={{ fontSize:20, fontWeight:700, color:todayDue.length>0?C.danger:C.muted }}>{processedOrders.length} 单</div>
+          <div style={{ fontSize:20, fontWeight:700, color:todayDue.length>0?C.danger:C.muted }}>{todayOrders.length} 单</div>
         </div>
       </div>
       <div style={{ background:C.card, borderRadius:12, padding:"10px 16px", marginBottom:16, border:"1px solid "+C.border }}>
         <div style={{ display:"flex", justifyContent:"space-between", marginBottom:6 }}>
           <div style={{ fontSize:12, color:C.muted }}>配货进度</div>
-          <div style={{ fontSize:12, color:C.muted }}>{total} / {processedOrders.length}</div>
+          <div style={{ fontSize:12, color:C.muted }}>{total} / {todayOrders.length}</div>
         </div>
         <div style={{ background:C.border, borderRadius:4, height:6, overflow:"hidden" }}>
-          <div style={{ background:C.success, height:"100%", width: processedOrders.length > 0 ? (total / processedOrders.length * 100) + "%" : "0%", borderRadius:4, transition:"width .3s" }} />
+          <div style={{ background:C.success, height:"100%", width: todayOrders.length > 0 ? (total / todayOrders.length * 100) + "%" : "0%", borderRadius:4, transition:"width .3s" }} />
         </div>
       </div>
       <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:8, marginBottom:24 }}>
