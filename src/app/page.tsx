@@ -118,7 +118,6 @@ export default function App() {
   });
   const todayStart = new Date(); todayStart.setHours(0,0,0,0);
   const todayApproved = orders.filter(o => o.review_status === "approved" && o.reviewed_at && o.reviewed_at * 1000 >= todayStart.getTime());
-  const totalArranged = orders.filter(o => o.shopee_status === "READY_TO_SHIP" || o.shopee_status === "PROCESSED");
 
 
   if (!unlocked) return (
@@ -177,7 +176,7 @@ export default function App() {
       </div>
       </div>
       <div style={{ padding: tab==="history"||tab==="review" ? "20px 0 80px" : "20px 20px 80px" }}>
-        {tab==="scan" && <div style={{padding:"0 20px"}}><ScanTab orders={orders} scanInput={scanInput} setScanInput={setScanInput} scanError={scanError} scanRef={scanRef} onScan={handleScan} onSelect={setActive} onSync={syncOrders} syncing={syncing} onOpenScanner={() => setShowScanner(true)} todayDue={todayDue} tomorrowDue={tomorrowDue} todayApproved={todayApproved} totalArranged={totalArranged} /></div>}
+        {tab==="scan" && <div style={{padding:"0 20px"}}><ScanTab orders={orders} scanInput={scanInput} setScanInput={setScanInput} scanError={scanError} scanRef={scanRef} onScan={handleScan} onSelect={setActive} onSync={syncOrders} syncing={syncing} onOpenScanner={() => setShowScanner(true)} todayDue={todayDue} tomorrowDue={tomorrowDue} todayApproved={todayApproved} /></div>}
         {tab==="list" && <div style={{padding:"0 20px"}}><ListTab orders={orders} onSelect={setActive} /></div>}
         {tab==="review" && worker.role==="boss" && <div style={{padding:"0 20px"}}><ReviewTab orders={orders} onReview={handleReview} /></div>}
         {tab==="history" && <div style={{padding:"0 20px"}}><HistoryTab orders={orders} onPreview={setPreviewImg} /></div>}
@@ -248,10 +247,10 @@ function WorkerPicker({ workers, onSelect, onAdd }: { workers: any[], onSelect: 
   );
 }
 
-function ScanTab({ orders, scanInput, setScanInput, scanError, scanRef, onScan, onSelect, onSync, syncing, onOpenScanner, todayDue, tomorrowDue, todayApproved, totalArranged }: any) {
+function ScanTab({ orders, scanInput, setScanInput, scanError, scanRef, onScan, onSelect, onSync, syncing, onOpenScanner, todayDue, tomorrowDue, todayApproved }: any) {
   const [quickList, setQuickList] = useState(null);
   const unscheduled = orders.filter(o => o.shopee_status === "READY_TO_SHIP");
-  const pending  = orders.filter(o => o.status === "pending" && o.shopee_status === "PROCESSED");
+  const pending  = orders.filter(o => o.status === "pending" && o.shopee_status === "READY_TO_SHIP");
   const rejected = orders.filter(o => o.review_status === "rejected");
   const inReview = orders.filter(o => o.review_status === "pending");
   const todayStart = new Date(); todayStart.setHours(0,0,0,0);
@@ -286,16 +285,16 @@ function ScanTab({ orders, scanInput, setScanInput, scanError, scanRef, onScan, 
             <div style={{ fontSize:9, color:C.danger, letterSpacing:1, marginTop:2 }}>今日必发 {todayDue.length} 单</div>
             <div style={{ fontSize:9, color:C.muted, letterSpacing:1, marginTop:1 }}>明日待发 {tomorrowDue.length} 单</div>
           </div>
-          <div style={{ fontSize:20, fontWeight:700, color:todayDue.length>0?C.danger:C.muted }}>{totalArranged.length} 单</div>
+          <div style={{ fontSize:20, fontWeight:700, color:todayDue.length>0?C.danger:C.muted }}>{unscheduled.length} 单</div>
         </div>
       </div>
       <div style={{ background:C.card, borderRadius:12, padding:"10px 16px", marginBottom:16, border:"1px solid "+C.border }}>
         <div style={{ display:"flex", justifyContent:"space-between", marginBottom:6 }}>
           <div style={{ fontSize:12, color:C.muted }}>配货进度</div>
-          <div style={{ fontSize:12, color:C.muted }}>{total} / {orders.filter(o=>o.shopee_status==="PROCESSED" && o.create_time*1000 >= todayStart.getTime()).length}</div>
+          <div style={{ fontSize:12, color:C.muted }}>{total} / {pending.length + inReview.length + rejected.length + total}</div>
         </div>
         <div style={{ background:C.border, borderRadius:4, height:6, overflow:"hidden" }}>
-          <div style={{ background:C.success, height:"100%", width: orders.filter(o=>o.shopee_status==="PROCESSED" && o.create_time*1000 >= todayStart.getTime()).length>0 ? (total/orders.filter(o=>o.shopee_status==="PROCESSED" && o.create_time*1000 >= todayStart.getTime()).length*100)+"%" : "0%", borderRadius:4, transition:"width .3s" }} />
+          <div style={{ background:C.success, height:"100%", width: (pending.length + inReview.length + rejected.length + total) > 0 ? (total / (pending.length + inReview.length + rejected.length + total) * 100) + "%" : "0%", borderRadius:4, transition:"width .3s" }} />
         </div>
       </div>
       <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:8, marginBottom:24 }}>
