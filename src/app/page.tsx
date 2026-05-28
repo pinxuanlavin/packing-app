@@ -184,7 +184,7 @@ export default function App() {
       </div>
       </div>
       <div style={{ padding: tab==="history"||tab==="review" ? "20px 0 80px" : "20px 20px 80px" }}>
-        {tab==="scan" && <div style={{padding:"0 20px"}}><ScanTab orders={orders} scanInput={scanInput} setScanInput={setScanInput} scanError={scanError} scanRef={scanRef} onScan={handleScan} onSelect={setActive} onSync={syncOrders} syncing={syncing} onOpenScanner={() => setShowScanner(true)} todayDue={todayDue} tomorrowDue={tomorrowDue} todayApproved={todayApproved} worker={worker} onClearBacklog={clearBacklog} /></div>}
+        {tab==="scan" && <div style={{padding:"0 20px"}}><ScanTab orders={orders} scanInput={scanInput} setScanInput={setScanInput} scanError={scanError} scanRef={scanRef} onScan={handleScan} onSelect={setActive} onSync={syncOrders} syncing={syncing} onOpenScanner={() => setShowScanner(true)} todayDue={todayDue} tomorrowDue={tomorrowDue} worker={worker} onClearBacklog={clearBacklog} /></div>}
         {tab==="list" && <div style={{padding:"0 20px"}}><ListTab orders={orders} onSelect={setActive} /></div>}
         {tab==="review" && worker.role==="boss" && <div style={{padding:"0 20px"}}><ReviewTab orders={orders} onReview={handleReview} /></div>}
         {tab==="history" && <div style={{padding:"0 20px"}}><HistoryTab orders={orders} onPreview={setPreviewImg} /></div>}
@@ -255,7 +255,7 @@ function WorkerPicker({ workers, onSelect, onAdd }: { workers: any[], onSelect: 
   );
 }
 
-function ScanTab({ orders, scanInput, setScanInput, scanError, scanRef, onScan, onSelect, onSync, syncing, onOpenScanner, todayDue, tomorrowDue, todayApproved, worker, onClearBacklog }: any) {
+function ScanTab({ orders, scanInput, setScanInput, scanError, scanRef, onScan, onSelect, onSync, syncing, onOpenScanner, todayDue, tomorrowDue, worker, onClearBacklog }: any) {
   const [quickList, setQuickList] = useState(null);
   const unscheduled = orders.filter(o => o.shopee_status === "READY_TO_SHIP");
 
@@ -271,8 +271,8 @@ function ScanTab({ orders, scanInput, setScanInput, scanError, scanRef, onScan, 
   const pending  = todayOrders.filter(o => o.status === "pending");
   const inReview = todayOrders.filter(o => o.review_status === "pending");
   const rejected = todayOrders.filter(o => o.review_status === "rejected");
-  const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
-  const total = todayApproved.length;
+  const doneInWindow = todayOrders.filter(o => o.review_status === "approved");
+  const total = doneInWindow.length;
   return (
     <div>
       {backlog.length > 0 && (
@@ -340,7 +340,7 @@ function ScanTab({ orders, scanInput, setScanInput, scanError, scanRef, onScan, 
       {quickList && (
         <div style={{ marginBottom:20 }}>
           <div style={{ fontSize:13, color:C.muted, fontWeight:600, marginBottom:10 }}>
-            {quickList} ({(quickList==="待配货"?pending:quickList==="待审核"?inReview:quickList==="待重拍"?rejected:quickList==="今日完成"?todayApproved:unscheduled).length})
+            {quickList} ({(quickList==="待配货"?pending:quickList==="待审核"?inReview:quickList==="待重拍"?rejected:quickList==="今日完成"?doneInWindow:unscheduled).length})
             <button onClick={() => setQuickList(null)} style={{ float:"right", background:"none", border:"none", color:C.dim, cursor:"pointer", fontSize:12 }}>收起 ↑</button>
           </div>
           {quickList==="今日配货" && todayDue.length > 0 && (
@@ -361,7 +361,7 @@ function ScanTab({ orders, scanInput, setScanInput, scanError, scanRef, onScan, 
               <div style={{ fontSize:10, color:C.muted, marginTop:2 }}>{o.items.map(i=>i.model||i.sku).join("、")}</div>
             </div>
           ))}
-          {quickList!=="今日配货" && (quickList==="待配货"?pending:quickList==="待审核"?inReview:quickList==="待重拍"?rejected:quickList==="今日完成"?todayApproved:unscheduled).map(o => (
+          {quickList!=="今日配货" && (quickList==="待配货"?pending:quickList==="待审核"?inReview:quickList==="待重拍"?rejected:quickList==="今日完成"?doneInWindow:unscheduled).map(o => (
             <div key={o.order_sn} onClick={() => onSelect(o)}
               style={{ background: quickList==="待重拍"?"rgba(138,53,48,0.05)":"#ffffff", border:"1px solid "+(quickList==="待重拍"?"rgba(138,53,48,0.3)":"rgba(120,105,80,0.12)"), borderRadius:4, padding:"12px 14px", marginBottom:6, cursor:"pointer" }}>
               <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
